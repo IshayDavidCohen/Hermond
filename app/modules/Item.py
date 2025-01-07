@@ -17,7 +17,7 @@ class ItemModule:
         Function creates a new supplier's item
 
         * Required Data in dictionary
-            supplierId: str (supplier id document)
+            supplier_id: str (supplier id document)
             itemName: str
             itemCategory: str
             image: str
@@ -33,7 +33,7 @@ class ItemModule:
         # Adding data on top of item_data
 
         # Convert to ObjectId if is or isn't
-        item_data['supplierId'] = ObjectId(item_data['supplierId'])
+        item_data['supplier_id'] = ObjectId(item_data['supplier_id'])
 
         # Dictionary of custom prices - of type {businessId: price}
         item_data['customPrices'] = {}
@@ -52,13 +52,14 @@ class ItemModule:
         """
         return self.db.find_one(self.collection, {'_id': ObjectId(item_id)})
 
-    def get_items_by(self, query: Dict) -> Optional[Union[CursorType]]:
+    def get_items_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[CursorType]]:
         """
         An all item documents from the itemCollection in MongoDB depending on query
         :param query: Dict
+        :param additional_query: Query(Dict)
         :return: Item Document (Type: Dict)
         """
-        return self.db.find_all(collection=self.collection, query=query)
+        return self.db.find_all(collection=self.collection, query=query, subfield_query=additional_query)
 
     def get_items_list(self) -> Optional[CursorType]:
         """

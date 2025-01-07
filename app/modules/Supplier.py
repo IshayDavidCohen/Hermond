@@ -73,14 +73,15 @@ class SupplierModule:
 
         return document
 
-    def get_suppliers_by(self, query: Dict) -> Optional[Union[Dict, CursorType]]:
+    def get_suppliers_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, CursorType]]:
         """
         Function returns all suppliers filling the query requirement.
 
         :param query: Dict
+        :param additional_query: Query(Dict)
         :return: Can return multiple (Type: CursorType from pymongo) or singular (Type: Dict)
         """
-        return self.db.find_all(collection=self.collection, query=query)
+        return self.db.find_all(collection=self.collection, query=query, subfield_query=additional_query)
 
     def get_suppliers_list(self) -> Optional[CursorType]:
         """

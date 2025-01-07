@@ -71,14 +71,15 @@ class BusinessModule:
 
         return document
 
-    def get_business_by(self, query: Dict) -> Optional[Union[Dict, CursorType]]:
+    def get_business_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, CursorType]]:
         """
         Function returns all business filling the query requirement.
 
         :param query: Dict
+        :param additional_query: A Query(Dict) used for additional functionality.
         :return: Can return multiple (Type: CursorType from pymongo) or singular (Type: Dict)
         """
-        return self.db.find_all(collection=self.collection, query=query)
+        return self.db.find_all(collection=self.collection, query=query, subfield_query=additional_query)
 
     def get_business_list(self) -> Optional[CursorType]:
         """

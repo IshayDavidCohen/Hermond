@@ -27,7 +27,7 @@ class OrderModule:
         Function creates a new order document
 
         * Required Data in dictionary
-        supplierId: str (supplier id document)
+        supplier_id: str (supplier id document)
         businessId: str (business id document)
         estimatedETA: datetime
         items: List of item objects
@@ -51,8 +51,8 @@ class OrderModule:
     def get_activeOrder(self, order_id: Union[str, ObjectId] = None, query: Dict = None) -> Optional[Dict]:
         return self.__get_order(self.order_collection, order_id, query)
 
-    def get_multiple_activeOrders(self, query: Dict) -> Optional[Union[Dict, CursorType]]:
-        return self.__get_multiple_orders(self.order_collection, query)
+    def get_multiple_activeOrders(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, CursorType]]:
+        return self.__get_multiple_orders(self.order_collection, query, additional_query)
 
     def get_activeOrders_list(self) -> Optional[CursorType]:
         return self.__get_order_list(self.order_collection)
@@ -62,8 +62,8 @@ class OrderModule:
     def get_orderHistory(self, order_id: Union[str, ObjectId], query: Dict = None) -> Optional[Dict]:
         return self.__get_order(self.history_collection, order_id, query)
 
-    def get_multiple_orderHistory(self, query: Dict) -> Optional[Union[Dict, CursorType]]:
-        return self.__get_multiple_orders(self.history_collection, query)
+    def get_multiple_orderHistory(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, CursorType]]:
+        return self.__get_multiple_orders(self.history_collection, query, additional_query)
 
     def get_orderHistory_list(self) -> Optional[CursorType]:
         return self.__get_order_list(self.history_collection)
@@ -102,8 +102,8 @@ class OrderModule:
 
         return document
 
-    def __get_multiple_orders(self, collection: str, query: Dict) -> Optional[Union[Dict, CursorType]]:
-        return self.db.find_all(collection=collection, query=query)
+    def __get_multiple_orders(self, collection: str, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, CursorType]]:
+        return self.db.find_all(collection=collection, query=query, subfield_query=additional_query)
 
     def __get_order_list(self, collection) -> Optional[CursorType]:
         return self.db.find_all(collection)
