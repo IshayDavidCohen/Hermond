@@ -18,10 +18,10 @@ class Database:
     def find_one(self, collection, query, subfield_query=None):
         return self.db[collection].find_one(query, subfield_query)
 
-    def find_all(self, collection, query: Optional[Dict] = None):
+    def find_all(self, collection, query: Optional[Dict] = None, subfield_query=None):
         if query is None:
             query = {}
-        return self.db[collection].find(query)
+        return self.db[collection].find(query, subfield_query)
 
     def update_one(self, collection, query, update):
         return self.db[collection].update_one(query, {'$set': update})
