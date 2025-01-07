@@ -12,21 +12,21 @@ class Database:
         if self.__ensure_mongodb_connection():
             self.db = self.mongo_client[database_name]
 
-    def insert_one(self, collection, document):
+    def insert_one(self, collection: str, document: Dict):
         return self.db[collection].insert_one(document)
 
-    def find_one(self, collection, query, subfield_query=None):
+    def find_one(self, collection: str, query: Dict, subfield_query: Optional[Dict] = None):
         return self.db[collection].find_one(query, subfield_query)
 
-    def find_all(self, collection, query: Optional[Dict] = None, subfield_query=None):
+    def find_all(self, collection: str, query: Optional[Dict] = None, subfield_query: Optional[Dict] = None):
         if query is None:
             query = {}
         return self.db[collection].find(query, subfield_query)
 
-    def update_one(self, collection, query, update):
+    def update_one(self, collection: str, query: Dict, update: Dict):
         return self.db[collection].update_one(query, {'$set': update})
 
-    def delete_one(self, collection, query):
+    def delete_one(self, collection: str, query: Dict):
         return self.db[collection].delete_one(query)
 
     def health_check(self):
