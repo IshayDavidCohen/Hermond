@@ -9,9 +9,10 @@ ORDER_STATUS = ['pending', 'accepted', 'rejected', 'delivering', 'arrived']
 
 
 class OrderedItem:
-    def __init__(self, item_id, quantity, price_at_order):
+    def __init__(self, item_id, quantity, base_price, price_at_order):
         self.item_id = item_id
         self.quantity = quantity
+        self.base_price = base_price
         self.price_at_order = price_at_order
         self.total_price_for_item = quantity * price_at_order
 
