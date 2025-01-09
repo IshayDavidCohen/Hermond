@@ -123,3 +123,23 @@ class ItemModule:
             document['_id'] = str(document['_id'])
 
         return document
+
+    def edit_user_custom_price(self, item_id: str, user_id: Union[str, ObjectId], price: float) -> bool:
+        query = {'_id': ObjectId(item_id)}
+        update = {f'customPrices.{ObjectId(user_id)}': price}
+
+        result = self.db.update_one(self.collection, query, update, operation='$set')
+
+        return result.modified_count > 0
+
+    def remove_user_custom_price(self, item_id: str, user_id: Union[str, ObjectId]) -> bool:
+        query = {'_id': ObjectId(item_id), f'customPrices.{ObjectId(user_id)}': {'$exists': True}}
+        update = {f'customPrices.{ObjectId(user_id)}': ''}
+
+        result = self.db.update_one(self.collection, query, update, operation='$unset')
+
+        return result.modified_count > 0
+
+
+
+
