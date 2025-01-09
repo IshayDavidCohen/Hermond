@@ -30,8 +30,8 @@ class OrderModule:
         * Required Data in dictionary
         supplier_id: str (supplier id document)
         businessId: str (business id document)
-        estimatedETA: datetime
-        items: List of item objects
+        estimated_eta: datetime
+        ordered_items: List of item objects
         totalPrice: float
 
         :param order_data: Data (Type: Dict)
