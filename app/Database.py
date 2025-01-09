@@ -23,8 +23,8 @@ class Database:
             query = {}
         return self.db[collection].find(query, subfield_query)
 
-    def update_one(self, collection: str, query: Dict, update: Dict):
-        return self.db[collection].update_one(query, {'$set': update})
+    def update_one(self, collection: str, query: Dict, update: Dict, operation: str = '$set'):
+        return self.db[collection].update_one(query, {operation: update})
 
     def delete_one(self, collection: str, query: Dict):
         return self.db[collection].delete_one(query)
