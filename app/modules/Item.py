@@ -1,16 +1,18 @@
 from typing import Dict, List, Union, Optional
-from pymongo.cursor import CursorType
+from pymongo.cursor import Cursor
 from bson import ObjectId
 from datetime import datetime
 
 # App dependencies
 from app.Database import Database
+from app.modules.BaseModule import _BaseModule
 
 
-class ItemModule:
+class ItemModule(_BaseModule):
     def __init__(self, db: Database):
-        self.db = db
         self.collection = 'itemsCollection'
+        self.db = db
+        super().__init__(db, self.collection)
 
     def create_item(self, item_data: Dict) -> str:
         """
@@ -35,38 +37,41 @@ class ItemModule:
         # Convert to ObjectId if is or isn't
         item_data['supplier_id'] = ObjectId(item_data['supplier_id'])
 
-        # Dictionary of custom prices - of type {businessId: price}
+        # Dictionary of custom prices - of type {business_id: price}
         item_data['customPrices'] = {}
 
         item_data['createdAt'] = datetime.utcnow()
         item_data['updatedAt'] = datetime.utcnow()
 
-        result = self.db.insert_one(self.collection, item_data)
-        return str(result.inserted_id)
+        # Inherit call
+        return self._create_document(item_data)
 
-    def get_item(self, item_id: Union[str, ObjectId]) -> Optional[Dict]:
+    # TODO: When a document is fetched, make sure all ObjectId's are acc string
+    def get_item(self, item_id: Union[str, ObjectId] = None, query: Dict = None) -> Optional[Dict]:
         """
         An item document from the itemCollection in MongoDB
         :param item_id: Union[str, ObjectId]
         :return: Item Document (Type: Dict)
+        :param query: Optional way to query a specific data.
         """
-        return self.db.find_one(self.collection, {'_id': ObjectId(item_id)})
 
-    def get_items_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[CursorType]]:
+        return self._get_document(document_id=item_id, query=query)
+
+    def get_items_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Cursor:
         """
         An all item documents from the itemCollection in MongoDB depending on query
         :param query: Dict
         :param additional_query: Query(Dict)
         :return: Item Document (Type: Dict)
         """
-        return self.db.find_all(collection=self.collection, query=query, subfield_query=additional_query)
+        return self._get_documents_by(query=query, additional_query=additional_query)
 
-    def get_items_list(self) -> Optional[CursorType]:
+    def get_items_list(self) -> Optional[Cursor]:
         """
         All items
         :return: pd.cursor.Cursor instance (subscriptable)
         """
-        return self.db.find_all(self.collection)
+        return self._get_documents_list()
 
     def update_item(self, item_id: Union[str, ObjectId], update_data: Dict) -> int:
         """
@@ -80,13 +85,8 @@ class ItemModule:
         :param update_data: Dict
         :return: int (0,1)
         """
-        update_data = update_data.copy()
 
-        if update_data.get('_id'):
-            del update_data['_id']
-        update_data['updatedAt'] = datetime.utcnow()
-
-        return self.db.update_one(self.collection, {'_id': ObjectId(item_id)}, update_data).modified_count
+        return self._update_document(document_id=item_id, update_data=update_data)
 
     def delete_item(self, item_id: Union[str, ObjectId]) -> int:
         """
@@ -97,9 +97,9 @@ class ItemModule:
         :param item_id: Union[str, ObjectId]
         :return: int (0,1)
         """
-        return self.db.delete_one(self.collection, {'_id': ObjectId(item_id)}).deleted_count
+        return self._delete_document(document_id=item_id)
 
-    def get_subfield(self, item_id: Union[str, ObjectId], subfields: List, with_id: bool = False) -> Dict:
+    def get_subfields(self, item_id: Union[str, ObjectId], subfields: List, with_id: bool = False) -> Dict:
         """
         Returns a document's subfield's value with or without the id (Default: without)
 
@@ -109,37 +109,12 @@ class ItemModule:
         :param with_id: T/F
         :return: Dictionary with the subfields w/o '_id'
         """
-        subfield_query = {k: 1 for k in subfields}
-        subfield_query['_id'] = with_id
-
-        document = self.db.find_one(collection=self.collection, query={'_id': ObjectId(item_id)},
-                                    subfield_query=subfield_query)
-
-        if len(document.keys()) == 1 and with_id:
-            return {}
-
-        # ObjectId -> str
-        if document and with_id:
-            document['_id'] = str(document['_id'])
-
-        return document
+        return self._get_subfields(document_id=item_id, subfields=subfields, with_id=with_id)
 
     def edit_user_custom_price(self, item_id: str, user_id: Union[str, ObjectId], price: float) -> bool:
-        query = {'_id': ObjectId(item_id)}
-        update = {f'customPrices.{ObjectId(user_id)}': price}
-
-        result = self.db.update_one(self.collection, query, update, operation='$set')
-
-        return result.modified_count > 0
+        field = {f'customPrices.{ObjectId(user_id)}': price}
+        return self._upsert_subfield(document_id=item_id, field_query=field)
 
     def remove_user_custom_price(self, item_id: str, user_id: Union[str, ObjectId]) -> bool:
-        query = {'_id': ObjectId(item_id), f'customPrices.{ObjectId(user_id)}': {'$exists': True}}
-        update = {f'customPrices.{ObjectId(user_id)}': ''}
-
-        result = self.db.update_one(self.collection, query, update, operation='$unset')
-
-        return result.modified_count > 0
-
-
-
-
+        field_query = f'customPrices.{ObjectId(user_id)}'
+        return self._remove_subfield(document_id=item_id, field_query=field_query)

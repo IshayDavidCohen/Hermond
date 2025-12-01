@@ -1,7 +1,7 @@
 from typing import Union, Dict, List, Optional
 from bson import ObjectId
 from datetime import datetime
-from pymongo.cursor import CursorType
+from pymongo.cursor import Cursor
 
 # App Dependencies
 from app.Database import Database
@@ -41,10 +41,10 @@ class HandshakeModule:
             document = self.remove_object_id(document)
         return document
 
-    def get_multiple_handshakes(self, query: Dict) -> Optional[CursorType]:
+    def get_multiple_handshakes(self, query: Dict) -> Optional[Cursor]:
         return self.db.find_all(self.collection, query)
 
-    def get_handshake_list(self) -> Optional[CursorType]:
+    def get_handshake_list(self) -> Optional[Cursor]:
         return self.db.find_all(self.collection)
 
     def update_status(self, status_change: str, handshake_id: Optional[Union[str, ObjectId]] = None, handshake_document: Optional[Dict] = None) -> Union[bool, str]:

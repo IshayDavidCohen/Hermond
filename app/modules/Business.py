@@ -1,5 +1,5 @@
 from typing import Union, Optional, Dict, List
-from pymongo.cursor import CursorType
+from pymongo.cursor import Cursor
 from bson import ObjectId
 from datetime import datetime
 
@@ -71,17 +71,17 @@ class BusinessModule:
 
         return document
 
-    def get_business_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, CursorType]]:
+    def get_business_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, Cursor]]:
         """
         Function returns all business filling the query requirement.
 
         :param query: Dict
         :param additional_query: A Query(Dict) used for additional functionality.
-        :return: Can return multiple (Type: CursorType from pymongo) or singular (Type: Dict)
+        :return: Can return multiple (Type: Cursor from pymongo) or singular (Type: Dict)
         """
         return self.db.find_all(collection=self.collection, query=query, subfield_query=additional_query)
 
-    def get_business_list(self) -> Optional[CursorType]:
+    def get_business_list(self) -> Optional[Cursor]:
         """
         I mean. come on.
         :return:

@@ -1,16 +1,18 @@
 from typing import Dict, Optional, List, Union
-from pymongo.cursor import CursorType
+from pymongo.cursor import Cursor
 from bson import ObjectId
 from datetime import datetime
 
 # App dependencies
 from app.Database import Database
+from app.modules.BaseModule import _BaseModule
 
 
-class SupplierModule:
+class SupplierModule(_BaseModule):
     def __init__(self, db: Database):
         self.db = db
         self.collection = 'suppliers'
+        super().__init__(db, self.collection)
 
     def create_supplier(self, supplier_data: Dict) -> str:
         """
@@ -47,8 +49,7 @@ class SupplierModule:
         supplier_data['updatedAt'] = datetime.utcnow()
 
         # Push new document
-        result = self.db.insert_one(self.collection, supplier_data)
-        return str(result.inserted_id)
+        return self._create_document(supplier_data)
 
     def get_supplier(self, supplier_id: Union[str, ObjectId] = None, query: Dict = None) -> Optional[Dict]:
         """
@@ -60,34 +61,37 @@ class SupplierModule:
         :param query: Filtering parameters (Type: dict)
         :return:
         """
-        if supplier_id:
-            query_by = {'_id': ObjectId(supplier_id)}
-        elif query:
-            query_by = query
-        else:
-            return None
+        # if supplier_id:
+        #     query_by = {'_id': ObjectId(supplier_id)}
+        # elif query:
+        #     query_by = query
+        # else:
+        #     return None
+        #
+        # document = self.db.find_one(self.collection, query_by)
+        # if document:
+        #     document['_id'] = str(document['_id'])
 
-        document = self.db.find_one(self.collection, query_by)
-        if document:
-            document['_id'] = str(document['_id'])
+        # return document
+        return self._get_document(document_id=supplier_id, query=query)
 
-        return document
-
-    def get_suppliers_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, CursorType]]:
+    def get_suppliers_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Cursor:
         """
         Function returns all suppliers filling the query requirement.
 
         :param query: Dict
         :param additional_query: Query(Dict)
-        :return: Can return multiple (Type: CursorType from pymongo) or singular (Type: Dict)
+        :return: Can return multiple (Type: Cursor from pymongo) or singular (Type: Dict)
         """
-        return self.db.find_all(collection=self.collection, query=query, subfield_query=additional_query)
+        # return self.db.find_all(collection=self.collection, query=query, subfield_query=additional_query)
+        return self._get_documents_by(query=query, additional_query=additional_query)
 
-    def get_suppliers_list(self) -> Optional[CursorType]:
+    def get_suppliers_list(self) -> Cursor:
         """
         :return: pd.cursor.Cursor instance (subscriptable)
         """
-        return self.db.find_all(self.collection)
+        # return self.db.find_all(self.collection)
+        return self._get_documents_list()
 
     def update_supplier(self, supplier_id: Union[str, ObjectId], update_data: Dict) -> int:
         """
@@ -102,14 +106,15 @@ class SupplierModule:
         :return: int
         """
 
-        update_data = update_data.copy()
-
-        # ID Exists, remove it
-        if update_data.get('_id'):
-            del update_data['_id']
-        update_data['updatedAt'] = datetime.utcnow()
-
-        return self.db.update_one(self.collection, {'_id': ObjectId(supplier_id)}, update_data).modified_count
+        # update_data = update_data.copy()
+        #
+        # # ID Exists, remove it
+        # if update_data.get('_id'):
+        #     del update_data['_id']
+        # update_data['updatedAt'] = datetime.utcnow()
+        #
+        # return self.db.update_one(self.collection, {'_id': ObjectId(supplier_id)}, update_data).modified_count
+        return self._update_document(document_id=supplier_id, update_data=update_data)
 
     def delete_supplier(self, supplier_id: Union[str, ObjectId]) -> int:
         """
@@ -121,10 +126,11 @@ class SupplierModule:
         :param supplier_id: Union[str, ObjectId]
         :return: int
         """
-        return self.db.delete_one(self.collection, {'_id': ObjectId(supplier_id)}).deleted_count
+        # return self.db.delete_one(self.collection, {'_id': ObjectId(supplier_id)}).deleted_count
+        return self._delete_document(document_id=supplier_id)
 
     # Complex Ops
-    def get_subfield(self, supplier_id: Union[str, ObjectId], subfields: List, with_id: bool = False) -> Dict:
+    def get_subfields(self, supplier_id: Union[str, ObjectId], subfields: List, with_id: bool = False) -> Dict:
         """
         Returns a document's subfield's value with or without the id (Default: without)
 
@@ -133,17 +139,19 @@ class SupplierModule:
         :param with_id: T/F
         :return: Dictionary with the subfields w/o '_id'.
         """
-        subfield_query = {k: 1 for k in subfields}
-        subfield_query['_id'] = with_id
+        # subfield_query = {k: 1 for k in subfields}
+        # subfield_query['_id'] = with_id
+        #
+        # document = self.db.find_one(collection=self.collection, query={'_id': ObjectId(supplier_id)},
+        #                             subfield_query=subfield_query)
+        #
+        # if len(document.keys()) == 1 and with_id:
+        #     return {}
+        #
+        # # ObjectId -> str
+        # if document and with_id:
+        #     document['_id'] = str(document['_id'])
+        #
+        # return document
+        return self._get_subfields(document_id=supplier_id, subfields=subfields, with_id=with_id)
 
-        document = self.db.find_one(collection=self.collection, query={'_id': ObjectId(supplier_id)},
-                                    subfield_query=subfield_query)
-
-        if len(document.keys()) == 1 and with_id:
-            return {}
-
-        # ObjectId -> str
-        if document and with_id:
-            document['_id'] = str(document['_id'])
-
-        return document
