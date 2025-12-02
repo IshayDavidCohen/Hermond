@@ -5,7 +5,7 @@ from app.routes.SupplierRoutes import supplier_bp
 from app.routes.BusinessRoutes import business_bp
 from app.routes.HandshakeRoutes import handshake_bp
 
-# App Agents
+# App services
 from app.services.BusinessService import BusinessService
 from app.services.SupplierService import SupplierService
 from app.services.HandshakeService import HandshakeService
@@ -50,14 +50,14 @@ def create_app():
     handshake_repository = HandshakeRepository(handshake_module=handshake_module, supplier_module=supplier_module, business_module=business_module)
 
     # 6. Initializing main services
-    business_agent = BusinessService(db)
-    supplier_agent = SupplierService(supplier_repo=supplier_repository)
-    handshake_agent = HandshakeService(handshake_repo=handshake_repository)
+    business_service = BusinessService(db)
+    supplier_service = SupplierService(supplier_repo=supplier_repository)
+    handshake_service = HandshakeService(handshake_repo=handshake_repository)
 
     # 5. Store the services in app.config for routes access
-    app.config['business_agent'] = business_agent
-    app.config['supplier_agent'] = supplier_agent
-    app.config['handshake_agent'] = handshake_agent
+    app.config['business_service'] = business_service
+    app.config['supplier_service'] = supplier_service
+    app.config['handshake_service'] = handshake_service
 
     # 6. register blueprints
     app.register_blueprint(business_bp, url_prefix='/api/v1/business')

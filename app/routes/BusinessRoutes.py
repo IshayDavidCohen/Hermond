@@ -8,13 +8,13 @@ business_bp = Blueprint('business_bp', __name__)
 
 @business_bp.route('/create/profile', methods=['POST'])
 def create_business_route():
-    business_agent = current_app.config['business_agent']
+    business_service = current_app.config['business_service']
 
     # Listen and get data from POST
     creation_data = request.get_json()
 
     if check_dict_validity(validity_map=BUSINESS, data=creation_data):
-        returned_id = business_agent.create_business(creation_data)
+        returned_id = business_service.create_business(creation_data)
         return jsonify({'id': returned_id}), 201
 
     return 'Missing fields or values', 400
