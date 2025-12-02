@@ -6,7 +6,7 @@ from app.repositories.SupplierRepository import SupplierRepository
 from app.utilities.funcs import get_carousel_data
 
 
-class SupplierAgent:
+class SupplierService:
     def __init__(self, supplier_repo: SupplierRepository):
         # For easy access outside the class
         self.supplier_module = supplier_repo.supplier_module

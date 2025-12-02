@@ -8,7 +8,7 @@ from app.repositories.OrderRepository import OrderRepository
 from app.modules.Orders import OrderedItem
 
 
-class OrderAgent:
+class OrderService:
     def __init__(self, order_repository: OrderRepository):
         self.OrderRepository = order_repository
 

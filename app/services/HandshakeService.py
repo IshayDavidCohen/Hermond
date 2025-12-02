@@ -5,7 +5,7 @@ from bson import ObjectId
 from app.repositories.HandshakeRepository import HandshakeRepository
 
 
-class HandshakeAgent:
+class HandshakeService:
     def __init__(self, handshake_repo: HandshakeRepository):
         self.handshake_module = handshake_repo.handshake_module
         self.HandshakeRepository = handshake_repo
