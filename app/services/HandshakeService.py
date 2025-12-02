@@ -2,7 +2,7 @@ from typing import List, Dict, Tuple, Union
 from bson import ObjectId
 
 # App Dependencies
-from app.repositories.HandshakeRepository import HandshakeRepository
+from app.infra.repositories.HandshakeRepository import HandshakeRepository
 
 
 class HandshakeService:

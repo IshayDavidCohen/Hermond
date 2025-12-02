@@ -1,7 +1,7 @@
-from typing import Union, Dict, List, Optional
+from typing import Union, Dict, Optional
 from pymongo.cursor import Cursor
 
-from app.Database import Database
+from app.infra.Database import Database
 from bson import ObjectId
 from datetime import datetime
 

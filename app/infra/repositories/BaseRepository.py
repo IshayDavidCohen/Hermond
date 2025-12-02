@@ -4,10 +4,10 @@ from pymongo.cursor import Cursor
 from datetime import datetime
 
 # App dependencies
-from app.Database import Database
+from app.infra.Database import Database
 
 
-class _BaseModule:
+class _BaseRepository:
     def __init__(self, db: Database, collection: str):
         """
         Base class created to ease maintainability.

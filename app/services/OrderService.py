@@ -1,10 +1,10 @@
 import collections
 
-from typing import List, Dict, Tuple, Union, Optional
+from typing import Dict, Union
 from bson import ObjectId
 
 # App Dependencies
-from app.repositories.OrderRepository import OrderRepository
+from app.infra.repositories.OrderRepository import OrderRepository
 from app.modules.Orders import OrderedItem
 
 

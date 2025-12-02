@@ -18,11 +18,11 @@ from app.modules.Business import BusinessModule
 from app.modules.Handshake import HandshakeModule
 
 # App Repository
-from app.repositories.SupplierRepository import SupplierRepository
-from app.repositories.HandshakeRepository import HandshakeRepository
+from app.infra.repositories.SupplierRepository import SupplierRepository
+from app.infra.repositories.HandshakeRepository import HandshakeRepository
 
 # Database
-from app.Database import Database
+from app.infra.Database import Database
 
 
 def create_app():

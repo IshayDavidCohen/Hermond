@@ -2,7 +2,7 @@ from typing import List, Dict, Tuple
 from bson import ObjectId
 
 # App Dependencies (Modules and Functions)
-from app.repositories.SupplierRepository import SupplierRepository
+from app.infra.repositories.SupplierRepository import SupplierRepository
 from app.utilities.funcs import get_carousel_data
 
 

@@ -4,11 +4,11 @@ from bson import ObjectId
 from datetime import datetime
 
 # App dependencies
-from app.Database import Database
-from app.modules.BaseModule import _BaseModule
+from app.infra.Database import Database
+from app.infra.repositories.BaseRepository import _BaseRepository
 
 
-class SupplierModule(_BaseModule):
+class SupplierModule(_BaseRepository):
     def __init__(self, db: Database):
         self.db = db
         self.collection = 'suppliers'

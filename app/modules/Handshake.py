@@ -1,10 +1,10 @@
-from typing import Union, Dict, List, Optional
+from typing import Union, Dict, Optional
 from bson import ObjectId
 from datetime import datetime
 from pymongo.cursor import Cursor
 
 # App Dependencies
-from app.Database import Database
+from app.infra.Database import Database
 
 STATUS_OPTIONS = ['accepted', 'rejected', 'pending', 'acknowledged']
 

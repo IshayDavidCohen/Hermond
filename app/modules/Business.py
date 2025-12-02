@@ -3,7 +3,7 @@ from pymongo.cursor import Cursor
 from bson import ObjectId
 from datetime import datetime
 
-from app.Database import Database
+from app.infra.Database import Database
 
 
 class BusinessModule:
