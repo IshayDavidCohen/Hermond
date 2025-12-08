@@ -11,11 +11,11 @@ from app.services.SupplierService import SupplierService
 from app.services.HandshakeService import HandshakeService
 
 # App Modules
-from app.modules.Category import CategoryModule
-from app.modules.Item import ItemModule
-from app.modules.Supplier import SupplierModule
-from app.modules.Business import BusinessModule
-from app.modules.Handshake import HandshakeModule
+from app.modules.CategoryModule import CategoryModule
+from app.modules.ItemModule import ItemModule
+from app.modules.SupplierModule import SupplierModule
+from app.modules.BusinessModule import BusinessModule
+from app.modules.HandshakeModule import HandshakeModule
 
 # App Repository
 from app.infra.repositories.SupplierRepository import SupplierRepository

@@ -96,14 +96,14 @@ class CategoryModule:
 
         return document
 
-    def get_users(self, category) -> Optional[List]:
+    def get_users(self, category) -> List:
         category_doc = self.get_category(category.capitalize())
         if category_doc:
             users = category_doc.get('users')
             if users:
                 return users
         print(f"[{category}] has no known users!")
-        return None
+        return []
 
     def add_user(self, category: str, username: str, user_id: str) -> int:
         try:

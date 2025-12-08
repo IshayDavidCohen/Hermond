@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
 # App dependencies
-from app.modules.Handshake import STATUS_OPTIONS
+from app.modules.HandshakeModule import STATUS_OPTIONS
 from app.utilities.funcs import check_dict_validity
 from app.utilities.validation_formats import HANDSHAKE
 

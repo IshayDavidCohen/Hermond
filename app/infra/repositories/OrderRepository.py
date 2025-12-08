@@ -1,7 +1,7 @@
-from app.modules.Item import ItemModule
-from app.modules.Supplier import SupplierModule
-from app.modules.Business import BusinessModule
-from app.modules.Orders import OrderModule
+from app.modules.ItemModule import ItemModule
+from app.modules.SupplierModule import SupplierModule
+from app.modules.BusinessModule import BusinessModule
+from app.modules.OrdersModule import OrderModule
 
 
 class OrderRepository:

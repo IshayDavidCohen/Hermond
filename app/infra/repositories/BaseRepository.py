@@ -7,7 +7,7 @@ from datetime import datetime
 from app.infra.Database import Database
 
 
-class _BaseRepository:
+class BaseRepository:
     def __init__(self, db: Database, collection: str):
         """
         Base class created to ease maintainability.

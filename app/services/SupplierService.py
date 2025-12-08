@@ -1,5 +1,4 @@
 from typing import List, Dict, Tuple
-from bson import ObjectId
 
 # App Dependencies (Modules and Functions)
 from app.infra.repositories.SupplierRepository import SupplierRepository
@@ -9,8 +8,7 @@ from app.utilities.funcs import get_carousel_data
 class SupplierService:
     def __init__(self, supplier_repo: SupplierRepository):
         # For easy access outside the class
-        self.supplier_module = supplier_repo.supplier_module
-        self.SupplierRepository = supplier_repo
+        self.supplier_repository = supplier_repo
 
     def create_supplier(self, supplier_data: Dict) -> Tuple[str, Dict]:
         """
@@ -22,38 +20,36 @@ class SupplierService:
         :param supplier_data: Data (Type: Dict)
         :return: New supplier document id (Type: str)
         """
-        category_validity_map = {k: 0 for k in supplier_data['categories']}
-        _id = self.supplier_module.create_supplier(supplier_data)
-        for c in supplier_data['categories']:
-            added = self.SupplierRepository.category_module.add_user(category=c, username=supplier_data['companyName'],
-                                                                     user_id=_id)
+        categories = supplier_data.get('categories', [])
+        supplier_name = supplier_data.get('companyName', '')
+        supplier_id = self.supplier_repository.create_supplier(supplier_data)
+
+        category_validity_map: Dict[str, int] = {c: 0 for c in supplier_data['categories']}
+        for c in categories:
+            added = self.supplier_repository.add_user_to_category(
+                category=c,
+                supplier_name=supplier_name,
+                supplier_id=supplier_id
+            )
             category_validity_map[c] = added
 
         # Check if the supplier was added to all categories
         if 0 in category_validity_map.values():
             print('[CREATE SUPPLIER] Not all categories were updated')
 
-        return _id, category_validity_map
+        return supplier_id, category_validity_map
 
-    def get_suppliers_from_category(self, category_id: str) -> List:
-        """
-        Function returns all suppliers in a category.
-        :param category_id: category id (Type: str)
-        :return: List of suppliers (Type: List)
-        """
-        users = self.SupplierRepository.category_module.get_users(category=category_id)
+    def get_suppliers_from_category(self, category: str) -> List[Dict]:
+        """Return raw supplier dicts for a given category."""
+        return self.supplier_repository.get_suppliers_from_category(category)
 
-        if users:
-            return [user for user in self.supplier_module.get_suppliers_by({'_id': {'$in': list(users.values())}})]
-        return []
-
-    def get_supplier_carousel(self, category_id: str) -> List[Dict]:
+    def get_category_supplier_carousel(self, category: str) -> List[Dict]:
         """
         Function returns a list of suppliers in a category in a format that can be used for a carousel.
-        :param category_id: category id (Type: str)
+        :param category: category id (Type: str)
         :return: List of dicts in format (Type: List)
         """
-        users = self.get_suppliers_from_category(category_id)
+        users = self.get_suppliers_from_category(category)
         carousel = get_carousel_data(users, {'link': '_id',
                                              'title': 'companyName',
                                              'desc': 'desc',
@@ -72,14 +68,23 @@ class SupplierService:
         :param item_data: Dict
         :return:
         """
-        supplier = self.supplier_module.get_supplier(supplier_id=item_data['supplier_id'])
-        if supplier:
-            _id = self.SupplierRepository.item_module.create_item(item_data=item_data)
-            supplier['items'].append(ObjectId(_id))
-            self.supplier_module.update_supplier(supplier_id=supplier['_id'], update_data={'items': supplier['items']})
-            return _id
-        else:
+        supplier_id = item_data.get('supplier_id')
+        if not supplier_id:
+            return '[CREATE ITEM] supplier_id missing'
+
+        supplier = self.supplier_repository.get_supplier(supplier_id=supplier_id)
+        if not supplier:
             return '[CREATE ITEM] Supplier not found'
+
+        item_id = self.supplier_repository.create_item(item_data=item_data)
+        updated = self.supplier_repository.append_item_to_supplier(
+            supplier_id=supplier_id,
+            item_id=item_id
+        )
+        if not updated:
+            return '[CREATE ITEM] Failed to append item to supplier'
+
+        return item_id
 
     def delete_item(self, item_id: str) -> int:
         """
@@ -88,24 +93,20 @@ class SupplierService:
         :param item_id: item document id (Type: str)
         :return: 0 if item not found, else return the result of the delete_item function from the item_module (0,1)
         """
-        item = self.SupplierRepository.item_module.get_item(item_id)
-        if item:
-            supplier = self.supplier_module.get_supplier(supplier_id=item['supplier_id'])
-            supplier['items'].remove(item_id)
-            self.supplier_module.update_supplier(supplier_id=supplier['_id'], update_data={'items': supplier['items']})
-            return self.SupplierRepository.item_module.delete_item(item_id)
-        else:
+        item = self.supplier_repository.get_item(item_id)
+        if not item:
             return 0
 
+        supplier_id = str(item['supplier_id'])
+        self.supplier_repository.remove_item_from_supplier(
+            supplier_id=supplier_id,
+            item_id=item_id
+        )
+
+        return self.supplier_repository.delete_item(item_id)
+
     def update_item(self, item_id: str, update_data: Dict) -> int:
-        """
-        Wrapper function.
-        Function updates an item document in the itemCollection in MongoDB.
-        :param item_id: item document id (Type: str)
-        :param update_data: Data (Type: Dict)
-        :return: result of the update_item function from the item_module (0,1)
-        """
-        return self.SupplierRepository.item_module.update_item(item_id, update_data)
+        return self.supplier_repository.update_item(item_id, update_data)
 
     def get_supplier_items(self, supplier_id: str, business_id: str = None) -> List:
         """
@@ -116,19 +117,19 @@ class SupplierService:
         :return: List of items (Type: List)
         """
 
-        # Fetches all items containing the supplier_id.
-        items_cursor = self.SupplierRepository.item_module.get_items_by(query={'supplier_id': supplier_id})
+        items = self.supplier_repository.get_items_by(query={'supplier_id': supplier_id})
 
-        supplier_items = []
-        for item in items_cursor:
-            if item:
-                item['_id'] = str(item['_id'])
-                supplier_items.append(item)
+        supplier_items: List[Dict] = []
+        for item in items:
+            if not item:
+                continue
 
-                if business_id:
-                    # Check if the business has a custom price for the item
-                    custom_price = item['customPrices'].get(business_id)
-                    if custom_price:
-                        item['basePrice'] = custom_price
+            item['_id'] = str(item['_id'])
+            if business_id:
+                custom_price = item.get('customPrices', {}).get(business_id)
+                if custom_price:
+                    item['basePrice'] = custom_price
+
+            supplier_items.append(item)
 
         return supplier_items

@@ -1,6 +1,6 @@
-from app.modules.Supplier import SupplierModule
-from app.modules.Business import BusinessModule
-from app.modules.Handshake import HandshakeModule
+from app.modules.SupplierModule import SupplierModule
+from app.modules.BusinessModule import BusinessModule
+from app.modules.HandshakeModule import HandshakeModule
 
 
 class HandshakeRepository:

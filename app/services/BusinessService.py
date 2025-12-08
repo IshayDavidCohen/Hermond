@@ -1,4 +1,4 @@
-from app.modules.Business import BusinessModule
+from app.modules.BusinessModule import BusinessModule
 
 
 class BusinessService(BusinessModule):

@@ -5,10 +5,10 @@ from datetime import datetime
 
 # App dependencies
 from app.infra.Database import Database
-from app.infra.repositories.BaseRepository import _BaseRepository
+from app.infra.repositories.BaseRepository import BaseRepository
 
 
-class ItemModule(_BaseRepository):
+class ItemModule(BaseRepository):
     def __init__(self, db: Database):
         self.collection = 'itemsCollection'
         self.db = db

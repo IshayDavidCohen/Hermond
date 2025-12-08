@@ -33,7 +33,7 @@ def get_supplier_route(supplier_id):
 @supplier_bp.route('/get/category_carousel/<category_id>', methods=['GET'])
 def get_category_carousel(category_id):
     supplier_service = current_app.config['supplier_service']
-    return jsonify(supplier_service.get_supplier_carousel(category_id=category_id)), 201
+    return jsonify(supplier_service.get_category_supplier_carousel(category_id=category_id)), 201
 
 
 @supplier_bp.route('/create/item', methods=['POST'])
