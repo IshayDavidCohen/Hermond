@@ -1,4 +1,7 @@
+import os
+
 from flask import Flask
+from dotenv import load_dotenv
 
 # Routes Blueprints
 from app.routes.SupplierRoutes import supplier_bp
@@ -24,14 +27,15 @@ from app.infra.repositories.HandshakeRepository import HandshakeRepository
 # Database
 from app.infra.Database import Database
 
+load_dotenv()
 
 def create_app():
     # 1. Create the Flask app instance
     app = Flask(__name__)
 
     # 2. Configure the app
-    app.config["MONGO_URI"] = "mongodb://localhost:27017"
-    app.config["DB_NAME"] = "vendordb"
+    app.config["MONGO_URI"] = os.getenv("MONGO_URI")
+    app.config["DB_NAME"] = os.getenv("mongo_db")
 
     # 3. Initialize the database with the given URI
     # Here we assume Database can take a URI directly. If not, adjust accordingly.
