@@ -43,7 +43,7 @@ class HandshakeService:
             return '', False
 
         # 2. Check if handshake already exists (checking one side is enough)
-        if sender['handshakeRequests'].get(recipient['companyName']):
+        if sender['handshake_requests'].get(recipient['company_name']):
             # Logger
             print('Handshake already exists')
             return '', False
@@ -54,23 +54,23 @@ class HandshakeService:
                                         sender=sender_type,
                                         recipient=recipient_type)
 
-        # 4. Update both to include handshake_id in their handshakeRequests
-        sender['handshakeRequests'][recipient['companyName']] = ObjectId(hid)
-        recipient['handshakeRequests'][sender['companyName']] = ObjectId(hid)
+        # 4. Update both to include handshake_id in their handshake_requests
+        sender['handshake_requests'][recipient['company_name']] = ObjectId(hid)
+        recipient['handshake_requests'][sender['company_name']] = ObjectId(hid)
 
         if sender_type == 'business':
             business_status = self.__update_business(business_id=sender['_id'],
-                                                     update_data={'handshakeRequests': sender['handshakeRequests']})
+                                                     update_data={'handshake_requests': sender['handshake_requests']})
 
             supplier_status = self.__update_supplier(supplier_id=recipient['_id'],
-                                                     update_data={'handshakeRequests': recipient['handshakeRequests']})
+                                                     update_data={'handshake_requests': recipient['handshake_requests']})
 
         elif sender_type == 'supplier':
             supplier_status = self.__update_supplier(supplier_id=sender['_id'],
-                                                     update_data={'handshakeRequests': sender['handshakeRequests']})
+                                                     update_data={'handshake_requests': sender['handshake_requests']})
 
             business_status = self.__update_business(business_id=recipient['_id'],
-                                                     update_data={'handshakeRequests': recipient['handshakeRequests']})
+                                                     update_data={'handshake_requests': recipient['handshake_requests']})
 
         return hid, all([business_status, supplier_status])
 
@@ -86,7 +86,7 @@ class HandshakeService:
 
         if user:
             cursor = self.handshake_module.get_multiple_handshakes(
-                {'_id': {'$in': list(user['handshakeRequests'].values())}})
+                {'_id': {'$in': list(user['handshake_requests'].values())}})
 
             handshakes = [h for h in cursor]
             if handshakes:
@@ -140,8 +140,8 @@ class HandshakeService:
         if handshake_document:
 
             # Set the respective keys for each supplier and business
-            sender_key = 'approvedBusinesses' if handshake_document['senderType'] == 'supplier' else 'mySuppliers'
-            recipient_key = 'approvedBusinesses' if handshake_document['recipientType'] == 'supplier' else 'mySuppliers'
+            sender_key = 'approved_businesses' if handshake_document['senderType'] == 'supplier' else 'my_suppliers'
+            recipient_key = 'approved_businesses' if handshake_document['recipientType'] == 'supplier' else 'my_suppliers'
 
             # Retrieve the sender and recipient
             sender = self.__retrieve_user_by_type(handshake_document['sender_id'],
@@ -157,16 +157,16 @@ class HandshakeService:
 
             # Execute the given action.
             if action == 'accepted':
-                sender[sender_key][recipient['companyName']] = ObjectId(recipient['_id'])
-                recipient[recipient_key][sender['companyName']] = ObjectId(sender['_id'])
+                sender[sender_key][recipient['company_name']] = ObjectId(recipient['_id'])
+                recipient[recipient_key][sender['company_name']] = ObjectId(sender['_id'])
                 query['sender_query'] = {sender_key: sender[sender_key]}
                 query['recipient_query'] = {recipient_key: recipient[recipient_key]}
 
             elif action == 'acknowledged':
-                del sender['handshakeRequests'][recipient['companyName']]
-                del recipient['handshakeRequests'][sender['companyName']]
-                query['sender_query'] = {'handshakeRequests': sender['handshakeRequests']}
-                query['recipient_query'] = {'handshakeRequests': recipient['handshakeRequests']}
+                del sender['handshake_requests'][recipient['company_name']]
+                del recipient['handshake_requests'][sender['company_name']]
+                query['sender_query'] = {'handshake_requests': sender['handshake_requests']}
+                query['recipient_query'] = {'handshake_requests': recipient['handshake_requests']}
 
             # Update both
             if handshake_document['senderType'] == 'business':

@@ -60,7 +60,7 @@ class Database:
     def __check_mongodb_health(self) -> Dict[str, Any]:
         health_status = {
             "is_connected": False,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(),
             "details": {}
         }
 

@@ -1,33 +1,33 @@
 SUPPLIER = {
     'bid': str,
-    'companyName': str,
+    'company_name': str,
     'desc': str,
     'icon': str,
     'banner': str,
     'email': str,
     'phone': str,
     'address': str,
-    'shippingAddress': str,
+    'shipping_address': str,
     'categories': list
 }
 BUSINESS = {
     'bid': str,
-    'companyName': str,
+    'company_name': str,
     'desc': str,
     'icon': str,
     'banner': str,
     'email': str,
     'phone': str,
     'address': str,
-    'shippingAddress': str,
+    'shipping_address': str,
 }
 SUPPLIER_ITEM = {
     'supplier_id': str,
-    'itemName': str,
-    'itemCategory': str,
+    'name': str,
+    'category': str,
     'image': str,
     'desc': str,
-    'basePrice': float,
+    'base_price': float,
     'unit': str,
     'currency': str
 }

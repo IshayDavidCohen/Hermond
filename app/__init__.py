@@ -22,6 +22,7 @@ from app.modules.HandshakeModule import HandshakeModule
 
 # App Repository
 from app.infra.repositories.SupplierRepository import SupplierRepository
+from app.infra.repositories.ItemRepository import ItemRepository
 from app.infra.repositories.HandshakeRepository import HandshakeRepository
 
 # Database
@@ -50,12 +51,13 @@ def create_app():
     supplier_module = SupplierModule(db)
 
     # 5. Initialize repositories
-    supplier_repository = SupplierRepository(supplier_module=supplier_module, category_module=category_module, item_module=item_module)
+    supplier_repository = SupplierRepository(supplier_module=supplier_module, category_module=category_module)
+    item_repository = ItemRepository(item_module=item_module)
     handshake_repository = HandshakeRepository(handshake_module=handshake_module, supplier_module=supplier_module, business_module=business_module)
 
     # 6. Initializing main services
     business_service = BusinessService(db)
-    supplier_service = SupplierService(supplier_repo=supplier_repository)
+    supplier_service = SupplierService(supplier_repository=supplier_repository, item_repository=item_repository)
     handshake_service = HandshakeService(handshake_repo=handshake_repository)
 
     # 5. Store the services in app.config for routes access

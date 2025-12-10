@@ -44,8 +44,8 @@ class OrderService:
         # 1. Extract id's from payload and get items.
         item_id_list = [key for supplier in order_data['orders'].values() for key in supplier.keys()]
         items_list = list(self.OrderRepository.item_module.get_items_by(query={'_id': {'$in': item_id_list}},
-                                                                        additional_query={'basePrice': 1,
-                                                                                          'customPrices': 1}))
+                                                                        additional_query={'base_price': 1,
+                                                                                          'custom_prices': 1}))
 
         if not items_list:
             # Logger - Could not retrieve items
@@ -59,12 +59,12 @@ class OrderService:
         # 3. Transform data (add id and check for custom prices)
         transformed_items = {}
         for item in items_list:
-            price_at_order = item['basePrice']
+            price_at_order = item['base_price']
 
-            if item['customPrices'].get(business_id):
-                price_at_order = item['customPrices'].get(business_id)
+            if item['custom_prices'].get(business_id):
+                price_at_order = item['custom_prices'].get(business_id)
 
-            transformed_items[str(item['_id'])] = {'basePrice': item['basePrice'],
+            transformed_items[str(item['_id'])] = {'base_price': item['base_price'],
                                                    'priceAtOrder': price_at_order}
 
         # TODO: Implement estimated_eta in the future.
@@ -75,7 +75,7 @@ class OrderService:
             for item_id, amount in order.items():
                 ordered_item_obj = OrderedItem(item_id=item_id,
                                                quantity=amount,
-                                               base_price=transformed_items[item_id]['basePrice'],
+                                               base_price=transformed_items[item_id]['base_price'],
                                                price_at_order=transformed_items[item_id]['priceAtOrder'])
                 total_price = total_price + ordered_item_obj.total_price_for_item
                 ordered_items.append(ordered_item_obj)
@@ -97,19 +97,19 @@ class OrderService:
             order_id = self.OrderRepository.order_module.create_order(new_order)
 
             # 6. Add order_id to both Supplier and Business
-            supplier_document['activeOrders'].append(order_id)
-            business_document['activeOrders'].append(order_id)
+            supplier_document['active_orders'].append(order_id)
+            business_document['active_orders'].append(order_id)
 
             # 7. Update both documents
-            s_updated = self.__update_supplier(supplier_id=supplier_id, update_data={'activeOrders': supplier_document['activeOrders']})
-            b_updated = self.__update_business(business_id=business_id, update_data={'activeOrders': business_document['activeOrders']})
+            supplier_updated = self.__update_supplier(supplier_id=supplier_id, update_data={'active_orders': supplier_document['active_orders']})
+            business_updated = self.__update_business(business_id=business_id, update_data={'active_orders': business_document['active_orders']})
 
             # Maybe dont exit, just report it didn't succeed
-            if s_updated is False or b_updated is False:
+            if supplier_updated is False or business_updated is False:
                 # Logger - Unable to update one of the two
                 return False
 
-            successful_orders[supplier_document['companyName']] = True
+            successful_orders[supplier_document['company_name']] = True
 
         # 8. Finally check every order was created
         failed_orders = {c: flag for c, flag in successful_orders.items() if flag is False}

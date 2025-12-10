@@ -2,13 +2,15 @@ from typing import List, Dict, Tuple
 
 # App Dependencies (Modules and Functions)
 from app.infra.repositories.SupplierRepository import SupplierRepository
+from app.infra.repositories.ItemRepository import ItemRepository
 from app.utilities.funcs import get_carousel_data
 
 
 class SupplierService:
-    def __init__(self, supplier_repo: SupplierRepository):
+    def __init__(self, supplier_repository: SupplierRepository, item_repository: ItemRepository):
         # For easy access outside the class
-        self.supplier_repository = supplier_repo
+        self.supplier_repository = supplier_repository
+        self.item_repository = item_repository
 
     def create_supplier(self, supplier_data: Dict) -> Tuple[str, Dict]:
         """
@@ -21,7 +23,7 @@ class SupplierService:
         :return: New supplier document id (Type: str)
         """
         categories = supplier_data.get('categories', [])
-        supplier_name = supplier_data.get('companyName', '')
+        supplier_name = supplier_data.get('company_name', '')
         supplier_id = self.supplier_repository.create_supplier(supplier_data)
 
         category_validity_map: Dict[str, int] = {c: 0 for c in supplier_data['categories']}
@@ -50,14 +52,16 @@ class SupplierService:
         :return: List of dicts in format (Type: List)
         """
         users = self.get_suppliers_from_category(category)
-        carousel = get_carousel_data(users, {'link': '_id',
-                                             'title': 'companyName',
-                                             'desc': 'desc',
-                                             'banner': 'banner',
-                                             'icon': 'icon'})
-        for item in carousel:
-            item['link'] = str(item['link'])
-
+        carousel = get_carousel_data(
+            data_list=users,
+            keys={
+                'link': '_id',
+                'title': 'company_name',
+                'desc': 'desc',
+                'banner': 'banner',
+                'icon': 'icon'
+                }
+        )
         return carousel
 
     # Handling Items for Supplier
@@ -76,7 +80,10 @@ class SupplierService:
         if not supplier:
             return '[CREATE ITEM] Supplier not found'
 
-        item_id = self.supplier_repository.create_item(item_data=item_data)
+        item_id = self.item_repository.create_item(item_data=item_data)
+        if not item_id:
+            return '[CREATE ITEM] Failed to create item'
+
         updated = self.supplier_repository.append_item_to_supplier(
             supplier_id=supplier_id,
             item_id=item_id
@@ -93,20 +100,19 @@ class SupplierService:
         :param item_id: item document id (Type: str)
         :return: 0 if item not found, else return the result of the delete_item function from the item_module (0,1)
         """
-        item = self.supplier_repository.get_item(item_id)
+        item = self.item_repository.get_item(item_id)
         if not item:
             return 0
 
-        supplier_id = str(item['supplier_id'])
         self.supplier_repository.remove_item_from_supplier(
-            supplier_id=supplier_id,
+            supplier_id=item.supplier_id,
             item_id=item_id
         )
 
-        return self.supplier_repository.delete_item(item_id)
+        return self.item_repository.delete_item(item_id)
 
     def update_item(self, item_id: str, update_data: Dict) -> int:
-        return self.supplier_repository.update_item(item_id, update_data)
+        return self.item_repository.update_item(item_id, update_data)
 
     def get_supplier_items(self, supplier_id: str, business_id: str = None) -> List:
         """
@@ -117,7 +123,7 @@ class SupplierService:
         :return: List of items (Type: List)
         """
 
-        items = self.supplier_repository.get_items_by(query={'supplier_id': supplier_id})
+        items = self.item_repository.get_items_by(query={'supplier_id': supplier_id})
 
         supplier_items: List[Dict] = []
         for item in items:
@@ -126,9 +132,9 @@ class SupplierService:
 
             item['_id'] = str(item['_id'])
             if business_id:
-                custom_price = item.get('customPrices', {}).get(business_id)
+                custom_price = item.get('custom_prices', {}).get(business_id)
                 if custom_price:
-                    item['basePrice'] = custom_price
+                    item['base_price'] = custom_price
 
             supplier_items.append(item)
 

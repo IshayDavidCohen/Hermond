@@ -12,7 +12,7 @@ STATUS_OPTIONS = ['accepted', 'rejected', 'pending', 'acknowledged']
 class HandshakeModule:
     def __init__(self, db: Database):
         self.db = db
-        self.collection = 'handshakeCollection'
+        self.collection = 'handshakes'
 
     def initiate_handshake(self, sender_id: Union[str, ObjectId], recipient_id: Union[str, ObjectId], sender: str, recipient: str) -> str:
         """
@@ -30,8 +30,8 @@ class HandshakeModule:
                          'senderType': sender,
                          'recipientType': recipient,
                          'status': 'pending',  # Default value when handshake is created
-                         'createdAt': datetime.utcnow(),
-                         'updatedAt': datetime.utcnow()}
+                         'created_at': datetime.now(),
+                         'updated_at': datetime.now()}
         result = self.db.insert_one(self.collection, handshake_obj)
         return str(result.inserted_id)
 
@@ -70,7 +70,7 @@ class HandshakeModule:
 
             self.apply_object_id(document)
 
-            document['updatedAt'] = datetime.utcnow()
+            document['updated_at'] = datetime.now()
             document['status'] = status_change
 
             return self.db.update_one(self.collection, {'_id': ObjectId(handshake_id)}, document).modified_count

@@ -1,56 +1,25 @@
 from typing import Dict, Optional, List, Union
 from pymongo.cursor import Cursor
 from bson import ObjectId
-from datetime import datetime
 
 # App dependencies
 from app.infra.Database import Database
-from app.infra.repositories.BaseRepository import BaseRepository
+from app.modules.BaseDAO import BaseDAO
 from app.domain.Supplier import Supplier
 
 
-class SupplierModule(BaseRepository):
+class SupplierModule(BaseDAO):
     def __init__(self, db: Database):
         self.db = db
         self.collection = 'suppliers'
         super().__init__(db, self.collection)
 
     def create_supplier(self, supplier_entity: Supplier) -> str:
-        """
-        Function creates a new supplier document
+        doc = supplier_entity.from_entity()
+        doc.pop("_id", None)
+        return self._create_document(doc)
 
-        * Required Data in dictionary
-        bid (business id): str
-        companyName: str
-        desc: str
-        icon: str
-        banner: str
-        email: str
-        phone: str
-        address: str
-        shippingAddress: str
-        categories: List ['Dairy', ...]
-
-        :param supplier_data: Data (Type: Dict)
-        :return: New supplier's document id (Type: str)
-        """
-
-        # Adding data on top of supplier_data
-
-        # Dictionary of approved businesses and handshake requests, of type: {companyName: ObjectId}
-        # supplier_data['approvedBusinesses'] = {}
-        # supplier_data['handshakeRequests'] = {}
-
-        # List of item id's, active orders, and order history, of type: [ObjectId, ObjectId, ..., ObjectId]
-        # supplier_data['items'] = []
-        # supplier_data['activeOrders'] = []
-        # supplier_data['orderHistory'] = []
-        #
-        # supplier_data['createdAt'] = datetime.utcnow()
-        # supplier_data['updatedAt'] = datetime.utcnow()
-        return self._create_document(supplier_entity.to_document())
-
-    def get_supplier(self, supplier_id: Union[str, ObjectId] = None, query: Dict = None) -> Optional[Dict]:
+    def get_supplier(self, supplier_id: str, query: Dict = None) -> Optional[Dict]:
         """
         Function is able to get supplier in two ways,
         1) By Supplier's ID
@@ -60,7 +29,8 @@ class SupplierModule(BaseRepository):
         :param query: Filtering parameters (Type: dict)
         :return:
         """
-        return self._get_document(document_id=supplier_id, query=query)
+        oid = ObjectId(supplier_id)
+        return self._get_document(document_id=oid, query=query)
 
     def get_suppliers_by(self, query: Dict, additional_query: Optional[Dict] = None) -> Cursor:
         """
@@ -78,7 +48,7 @@ class SupplierModule(BaseRepository):
         """
         return self._get_documents_list()
 
-    def update_supplier(self, supplier_id: Union[str, ObjectId], update_data: Dict) -> int:
+    def update_supplier(self, supplier_id: str, update_data: Dict) -> int:
         """
         Function removes the ID if exists (should exist.), updateAt gets updated.
         Updates and returns the modified_count
@@ -90,9 +60,10 @@ class SupplierModule(BaseRepository):
         :param update_data: Dict
         :return: int
         """
-        return self._update_document(document_id=supplier_id, update_data=update_data)
+        oid = ObjectId(supplier_id)
+        return self._update_document(document_id=oid, update_data=update_data)
 
-    def delete_supplier(self, supplier_id: Union[str, ObjectId]) -> int:
+    def delete_supplier(self, supplier_id: str) -> int:
         """
         Deletes document based on Supplier's ID and returns confirmation
 
@@ -102,10 +73,11 @@ class SupplierModule(BaseRepository):
         :param supplier_id: Union[str, ObjectId]
         :return: int
         """
-        return self._delete_document(document_id=supplier_id)
+        oid = ObjectId(supplier_id)
+        return self._delete_document(document_id=oid)
 
     # Complex Ops
-    def get_subfields(self, supplier_id: Union[str, ObjectId], subfields: List, with_id: bool = False) -> Dict:
+    def get_subfields(self, supplier_id: str, subfields: List, with_id: bool = False) -> Dict:
         """
         Returns a document's subfield's value with or without the id (Default: without)
 
@@ -114,5 +86,6 @@ class SupplierModule(BaseRepository):
         :param with_id: T/F
         :return: Dictionary with the subfields w/o '_id'.
         """
+        supplier_id = ObjectId(supplier_id)
         return self._get_subfields(document_id=supplier_id, subfields=subfields, with_id=with_id)
 

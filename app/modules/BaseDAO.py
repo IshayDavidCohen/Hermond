@@ -7,7 +7,7 @@ from datetime import datetime
 from app.infra.Database import Database
 
 
-class BaseRepository:
+class BaseDAO:
     def __init__(self, db: Database, collection: str):
         """
         Base class created to ease maintainability.
@@ -22,9 +22,9 @@ class BaseRepository:
         result = self._db.insert_one(self._collection, data)
         return str(result.inserted_id)
     
-    def _get_document(self, document_id: Union[str, ObjectId] = None, query: Dict = None) -> Optional[Dict]:
+    def _get_document(self, document_id: ObjectId = None, query: Dict = None) -> Optional[Dict]:
         if document_id:
-            query_by = {'_id': ObjectId(document_id)}
+            query_by = {'_id': document_id}
         elif query:
             query_by = query
         else:
@@ -42,7 +42,7 @@ class BaseRepository:
     def _get_documents_list(self):
         return self._db.find_all(self._collection)
 
-    def _update_document(self, document_id: Union[str, ObjectId], update_data: Dict) -> int:
+    def _update_document(self, document_id: ObjectId, update_data: Dict) -> int:
         """
         Function removes the ID if exists (should exist.), updateAt gets updated.
         Updates and returns the modified_count
@@ -50,7 +50,7 @@ class BaseRepository:
         modified_count = 1 -> Success
         modified_count = 0 -> Failed :(
 
-        :param document_id: Union[str, ObjectId]
+        :param document_id: ObjectId
         :param update_data: Dict
         :return: int
         """
@@ -60,22 +60,22 @@ class BaseRepository:
         # ID Exists, remove it
         if update_data.get('_id'):
             del update_data['_id']
-        update_data['updatedAt'] = datetime.utcnow()
+        update_data['updated_at'] = datetime.now()
 
-        result = self._db.update_one(self._collection, {'_id': ObjectId(document_id)}, update_data)
+        result = self._db.update_one(self._collection, {'_id': document_id}, update_data)
         return result.modified_count > 0
 
-    def _delete_document(self, document_id: Union[str, ObjectId]) -> int:
+    def _delete_document(self, document_id: ObjectId) -> int:
         """
         Deletes document based on document's ID and returns confirmation
 
         deleted_count = 1 -> Success
         deleted_count = 0 -> Failed
 
-        :param document_id: Union[str, ObjectId]
+        :param document_id: ObjectId
         :return: int
         """
-        result = self._db.delete_one(self._collection, {'_id': ObjectId(document_id)})
+        result = self._db.delete_one(self._collection, {'_id': document_id})
         return result.deleted_count > 0
 
     # Subfield manipulation
@@ -84,7 +84,7 @@ class BaseRepository:
         """
         Returns a document's subfield's value with or without the id (Default: without)
 
-        :param document_id: ID of document (Type: str)
+        :param document_id: ID of document (Type: ObjectId)
         :param subfields: List of subfields to return Ex. ['address', 'phone', 'email']
         :param with_id: T/F
         :return: Dictionary with the subfields w/o '_id'.
@@ -93,31 +93,32 @@ class BaseRepository:
         subfield_query['_id'] = with_id
 
         document = self._db.find_one(collection=self._collection,
-                                     query={'_id': ObjectId(document_id)},
+                                     query={'_id': document_id},
                                      subfield_query=subfield_query)
-
-        if len(document.keys()) == 1 and with_id:
+        if not document:
             return {}
 
-        # ObjectId -> str
-        if document and with_id:
+        if with_id and set(document.keys()) <= {'_id'}:
+            return {}
+
+        if with_id and '_id' in document and isinstance(document['_id'], ObjectId):
             document['_id'] = str(document['_id'])
 
         return document
 
-    def _upsert_subfield(self, document_id: Union[str, ObjectId], field_query: Dict) -> bool:
-        result = self._db.update_one(self._collection, {'_id': ObjectId(document_id)}, field_query, operation='$set')
+    def _upsert_subfield(self, document_id: ObjectId, field_query: Dict) -> bool:
+        result = self._db.update_one(self._collection, {'_id': document_id}, field_query, operation='$set')
         return result.modified_count > 0
 
-    def _remove_subfield(self, document_id: Union[str, ObjectId], field_query: str) -> bool:
+    def _remove_subfield(self, document_id: ObjectId, field_query: str) -> bool:
         """
         Removal of a subfield in a document
 
-        :param document_id: str or ObjectId
-        :param field_query: field's name ex. 'customPrices.[user_id]' or 'bid'
+        :param document_id: ObjectId
+        :param field_query: field's name ex. 'custom_prices.[user_id]' or 'bid'
         :return:
         """
-        query = {'_id': ObjectId(document_id), field_query: {'$exists': True}}
+        query = {'_id': document_id, field_query: {'$exists': True}}
         update = {field_query: ''}
 
         result = self._db.update_one(self._collection, query, update, operation='$unset')

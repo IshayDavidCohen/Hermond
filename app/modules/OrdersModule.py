@@ -20,8 +20,8 @@ class OrderedItem:
 class OrderModule:
     def __init__(self, db: Database):
         self.db = db
-        self.order_collection = 'activeOrders'
-        self.history_collection = 'orderHistory'
+        self.order_collection = 'active_orders'
+        self.history_collection = 'order_history'
 
     def create_order(self, order_data: Dict) -> str:
         """
@@ -40,8 +40,8 @@ class OrderModule:
 
         # Adding data on top of order_data
         order_data['status'] = 'pending'  # Default value when order is created
-        order_data['createdAt'] = datetime.utcnow()
-        order_data['updatedAt'] = datetime.utcnow()
+        order_data['created_at'] = datetime.now()
+        order_data['updated_at'] = datetime.now()
 
         result = self.db.insert_one(self.order_collection, order_data)
 
@@ -49,24 +49,24 @@ class OrderModule:
 
     #  ==============================/* Order History */
 
-    def get_activeOrder(self, order_id: Union[str, ObjectId] = None, query: Dict = None) -> Optional[Dict]:
+    def get_active_order(self, order_id: Union[str, ObjectId] = None, query: Dict = None) -> Optional[Dict]:
         return self.__get_order(self.order_collection, order_id, query)
 
-    def get_multiple_activeOrders(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, Cursor]]:
+    def get_multiple_active_orders(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, Cursor]]:
         return self.__get_multiple_orders(self.order_collection, query, additional_query)
 
-    def get_activeOrders_list(self) -> Optional[Cursor]:
+    def get_active_orders_list(self) -> Optional[Cursor]:
         return self.__get_order_list(self.order_collection)
 
     #  ==============================/* Order History */
 
-    def get_orderHistory(self, order_id: Union[str, ObjectId], query: Dict = None) -> Optional[Dict]:
+    def get_order_history(self, order_id: Union[str, ObjectId], query: Dict = None) -> Optional[Dict]:
         return self.__get_order(self.history_collection, order_id, query)
 
-    def get_multiple_orderHistory(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, Cursor]]:
+    def get_multiple_order_history(self, query: Dict, additional_query: Optional[Dict] = None) -> Optional[Union[Dict, Cursor]]:
         return self.__get_multiple_orders(self.history_collection, query, additional_query)
 
-    def get_orderHistory_list(self) -> Optional[Cursor]:
+    def get_order_history_list(self) -> Optional[Cursor]:
         return self.__get_order_list(self.history_collection)
 
     def update_order(self, collection: str, order_id: Union[str, ObjectId], update_data: Dict, status: str) -> int:
@@ -80,7 +80,7 @@ class OrderModule:
         # Must update status
         update_data['status'] = status
 
-        update_data['updatedAt'] = datetime.utcnow()
+        update_data['updated_at'] = datetime.now()
         return self.db.update_one(collection, {'_id': ObjectId(order_id)}, update_data).modified_count
 
     def delete_order(self, collection: str, order_id: Union[str, ObjectId]) -> int:

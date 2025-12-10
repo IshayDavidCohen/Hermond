@@ -1,16 +1,18 @@
 from typing import Optional, List, Dict, Union
 from bson import ObjectId
 from pymongo.cursor import Cursor
-from app.infra.Database import Database
 
+from app.infra.Database import Database
+from app.modules.BaseDAO import BaseDAO
 
 # CategoryModule is unique due to id's having direct correlation to category name.
 
 
-class CategoryModule:
+class CategoryModule(BaseDAO):
     def __init__(self, db: Database):
         self.db = db
         self.collection = 'categories'
+        super().__init__(db, self.collection)
 
     # Basic CRUD Operation
     def create_category(self, category_data: Dict) -> str:
@@ -85,16 +87,7 @@ class CategoryModule:
 
     # Complex Operations - subfields
     def get_subfield(self, category_id: str, subfields: List, with_id: bool = False) -> Dict:
-        subfield_query = {k: 1 for k in subfields}
-        subfield_query['_id'] = with_id
-
-        document = self.db.find_one(collection=self.collection, query={'_id': category_id},
-                                    subfield_query=subfield_query)
-
-        if len(document.keys()) == 1 and with_id:
-            return {}
-
-        return document
+        return self._get_subfields(document_id=category_id, subfields=subfields, with_id=with_id)
 
     def get_users(self, category) -> List:
         category_doc = self.get_category(category.capitalize())
