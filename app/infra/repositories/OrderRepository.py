@@ -1,14 +1,10 @@
-from app.modules.ItemModule import ItemModule
-from app.modules.SupplierModule import SupplierModule
 from app.modules.BusinessModule import BusinessModule
-from app.modules.OrdersModule import OrderModule
+from app.modules.OrderModule import OrderModule
 
 
 class OrderRepository:
-    def __init__(self, order_module: OrderModule, supplier_module: SupplierModule,
-                 business_module: BusinessModule, item_module: ItemModule):
+    def __init__(self, order_module: OrderModule,
+                 business_module: BusinessModule):
         self.order_module = order_module
-        self.supplier_module = supplier_module
         self.business_module = business_module
-        self.item_module = item_module
 

@@ -37,6 +37,7 @@ class Supplier:
                    created_at=now, updated_at=now,
         )
 
+    # TODO: MUST - Validate the list and dict comprehension, seems fishy!
     @classmethod
     def to_entity(cls, doc: Dict) -> "Supplier":
         # Convert MongoDB document to Supplier dataclass instance
@@ -54,7 +55,7 @@ class Supplier:
             categories=doc['categories'],
             approved_businesses={k: str(v) for k, v in doc['approved_businesses'].items()},
             handshake_requests={k: str(v) for k, v in doc['handshake_requests'].items()},
-            items=[str(item) for item in doc['items']],
+            items=doc['items'],
             active_orders=[str(order) for order in doc['active_orders']],
             order_history=[str(order) for order in doc['order_history']],
             created_at=doc['created_at'],
@@ -75,11 +76,11 @@ class Supplier:
             'address': self.address,
             'shipping_address': self.shipping_address,
             'categories': self.categories,
-            'approved_businesses': {k: v for k, v in self.approved_businesses.items()},
-            'handshake_requests': {k: v for k, v in self.handshake_requests.items()},
-            'items': [item for item in self.items],
-            'active_orders': [order for order in self.active_orders],
-            'order_history': [order for order in self.order_history],
+            'approved_businesses': self.approved_businesses,
+            'handshake_requests': self.handshake_requests,
+            'items': self.items,
+            'active_orders': self.active_orders,
+            'order_history': self.order_history,
             'created_at': self.created_at,
             'updated_at': self.updated_at
         }

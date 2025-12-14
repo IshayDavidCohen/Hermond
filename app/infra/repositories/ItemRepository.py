@@ -1,17 +1,23 @@
+from typing import Dict, Optional, List, Tuple
 
-from typing import Dict, Optional, List
+from pymongo.cursor import Cursor
 
-from app.modules.ItemModule import ItemModule
-from app.domain.Item import Item
+from app.infra.Database import Database
+from app.domain.entities.Item import Item
+from app.infra.BaseDAO import BaseDAO
+from app.utilities.funcs import to_oid
 
-class ItemRepository:
-    def __init__(self, item_module: ItemModule):
-        self._item_module = item_module
+
+class ItemRepository(BaseDAO):
+    COLLECTION = "items"
+
+    def __init__(self, db: Database):
+        super().__init__(db, self.COLLECTION)
 
     # -------------------------------------------------------------------------
-    # Item CRUD (delegated to ItemModule)
+    # CRUD
     # -------------------------------------------------------------------------
-    def create_item(self, item_data: Dict) -> str:
+    def create_item(self, item_data: Dict) -> Tuple[str, Item]:
         item_entity: Item = Item.new(
             supplier_id=item_data['supplier_id'],
             name=item_data['name'],
@@ -22,20 +28,86 @@ class ItemRepository:
             unit=item_data['unit'],
             currency=item_data['currency'],
         )
-        return self._item_module.create_item(item_entity)
+        doc = item_entity.from_entity()
+        doc.pop("_id", None)
+
+        supplier_oid = to_oid(item_entity.supplier_id)
+        if not supplier_oid:
+            raise ValueError("Invalid supplier_id (not an ObjectId)")
+
+        doc["supplier_id"] = supplier_oid
+
+        item_id = self._create_document(doc)
+        return item_id, item_entity
 
     def get_item(self, item_id: str) -> Optional[Item]:
-        doc = self._item_module.get_item(item_id)
+        oid = to_oid(item_id)
+        if not oid:
+            return None
+
+        doc = self._get_document(document_id=oid)
         if not doc:
             return None
         return Item.to_entity(doc)
 
     def update_item(self, item_id: str, update_data: Dict) -> int:
-        return self._item_module.update_item(item_id, update_data)
+        oid = to_oid(item_id)
+        if not oid:
+            return False
+        return self._update_document(document_id=oid, update_data=update_data)
 
     def delete_item(self, item_id: str) -> int:
-        return self._item_module.delete_item(item_id)
+        oid = to_oid(item_id)
+        if not oid:
+            return False
+        return self._delete_document(document_id=oid)
 
-    def get_items_by(self, query: Dict, additional_query: Dict = None) -> List:
-        return list(self._item_module.get_items_by(query, additional_query))
+    # ----------------------------
+    # "fast" ops / queries
+    # ----------------------------
+    def item_exists(self, item_id: str) -> bool:
+        oid = to_oid(item_id)
+        if not oid:
+            return False
+        return self._db.find_one(self.COLLECTION, {"_id": oid}, {"_id": 1}) is not None
 
+    def get_items_by(self, query: Dict, projection: Optional[Dict] = None) -> Cursor:
+        return self._get_documents_by(query=query, additional_query=projection)
+
+
+    def get_supplier_id_from_item(self, item_id: str) -> Optional[str]:
+        oid = to_oid(item_id)
+        if not oid:
+            return None
+
+        doc = self._db.find_one(self.COLLECTION, {"_id": oid}, {"supplier_id": 1})
+        if not doc:
+            return None
+
+        # supplier_id in mongo should be ObjectId; return str outward
+        supplier_id = doc.get("supplier_id")
+        return str(supplier_id) if supplier_id is not None else None
+
+
+    # ----------------------------
+    # Subfields / custom prices
+    # ----------------------------
+    def get_subfields(self, item_id: str, subfields: List, with_id: bool = False) -> Dict:
+        oid = to_oid(item_id)
+        if not oid:
+            return {}
+        return self._get_subfields(document_id=oid, subfields=subfields, with_id=with_id)
+
+    def edit_user_custom_price(self, item_id: str, user_id: str, price: float) -> bool:
+        oid = to_oid(item_id)
+        if not oid:
+            return False
+        field = {f"custom_prices.{user_id}": price}
+        return self._upsert_subfield(document_id=oid, field_query=field)
+
+    def remove_user_custom_price(self, item_id: str, user_id: str) -> bool:
+        oid = to_oid(item_id)
+        if not oid:
+            return False
+        field_query = f"custom_prices.{user_id}"
+        return self._remove_subfield(document_id=oid, field_query=field_query)

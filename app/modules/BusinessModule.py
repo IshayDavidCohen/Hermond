@@ -4,7 +4,7 @@ from bson import ObjectId
 from datetime import datetime
 
 from app.infra.Database import Database
-from app.modules.BaseDAO import BaseDAO
+from app.infra.BaseDAO import BaseDAO
 
 class BusinessModule(BaseDAO):
     def __init__(self, db: Database):

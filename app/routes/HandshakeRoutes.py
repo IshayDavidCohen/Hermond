@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
 # App dependencies
-from app.modules.HandshakeModule import STATUS_OPTIONS
+from app.domain.entities.Handshake import HandshakeStatus
 from app.utilities.funcs import check_dict_validity
 from app.utilities.validation_formats import HANDSHAKE
 
@@ -47,7 +47,7 @@ def get_user_handshakes_route(user_type, user_id):
 def ack_handshake_routes(user_id, handshake_id, response):
     handshake_service = current_app.config['handshake_service']
 
-    if response in STATUS_OPTIONS:
+    if response in HandshakeStatus:
         return jsonify({'success': handshake_service.process_handshake(user_id, handshake_id, response)}), 201
     return 'Invalid response', 400
 

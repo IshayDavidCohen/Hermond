@@ -65,7 +65,7 @@ class BaseDAO:
         result = self._db.update_one(self._collection, {'_id': document_id}, update_data)
         return result.modified_count > 0
 
-    def _delete_document(self, document_id: ObjectId) -> int:
+    def _delete_document(self, document_id: ObjectId) -> bool:
         """
         Deletes document based on document's ID and returns confirmation
 

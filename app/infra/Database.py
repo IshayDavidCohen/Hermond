@@ -1,4 +1,4 @@
-from asyncio import sleep
+from time import sleep
 from typing import Optional, Dict, Any
 from pymongo import MongoClient, errors
 from datetime import datetime

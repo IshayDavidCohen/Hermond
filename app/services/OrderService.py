@@ -5,7 +5,7 @@ from bson import ObjectId
 
 # App Dependencies
 from app.infra.repositories.OrderRepository import OrderRepository
-from app.modules.OrdersModule import OrderedItem
+from app.modules.OrderModule import OrderedItem
 
 
 class OrderService:
