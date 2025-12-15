@@ -40,6 +40,8 @@ class SupplierRepository(BaseDAO):
         if not doc:
             return None
         doc["_id"] = str(doc["_id"])
+
+
         return Supplier.to_entity(doc)
 
     def update_supplier(self, supplier_id: str, update_data: Dict) -> int:

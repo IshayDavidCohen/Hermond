@@ -36,8 +36,8 @@ class SupplierService:
         category_validity_map: Dict[str, int] = {c: 0 for c in supplier_data['categories']}
         for c in categories:
             added = self.category_repository.add_user_to_category(
-                category=c,
-                supplier_name=supplier_name,
+                category_id=c,
+                username=supplier_name,
                 supplier_id=supplier_id
             )
             category_validity_map[c] = added
@@ -67,6 +67,7 @@ class SupplierService:
         :param item_data: Dict
         :return:
         """
+        # TODO: PASSED
         supplier_id = item_data.get('supplier_id')
         if not supplier_id:
             return '[CREATE ITEM] supplier_id missing'
@@ -103,7 +104,7 @@ class SupplierService:
         if not supplier_id:
             return '[DELETE ITEM] Supplier ID not found from item (critical)'
 
-        removed_item = self.supplier_repository.remove_item_from_supplier(supplier_id=supplier_id, item_id=item_id)
+        removed_item = self.supplier_repository.remove_item(supplier_id=supplier_id, item_id=item_id)
         if not removed_item:
             return '[DELETE ITEM] Failed to remove item from supplier'
 

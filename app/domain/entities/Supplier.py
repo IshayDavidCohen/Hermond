@@ -55,9 +55,9 @@ class Supplier:
             categories=doc['categories'],
             approved_businesses={k: str(v) for k, v in doc['approved_businesses'].items()},
             handshake_requests={k: str(v) for k, v in doc['handshake_requests'].items()},
-            items=doc['items'],
-            active_orders=[str(order) for order in doc['active_orders']],
-            order_history=[str(order) for order in doc['order_history']],
+            items=[str(x) for x in doc.get('items', [])],
+            active_orders=[str(order) for order in doc.get('active_orders', [])],
+            order_history=[str(order) for order in doc.get('order_history',[])],
             created_at=doc['created_at'],
             updated_at=doc['updated_at']
         )

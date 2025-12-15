@@ -13,7 +13,6 @@ supplier_bp = Blueprint('supplier_bp', __name__)
 
 @supplier_bp.route('/create/profile', methods=['POST'])
 def create_supplier_route():
-    # TODO: PASSED
     supplier_service = current_app.config['supplier_service']
     # Listen and get data from POST
     creation_data = request.get_json()
@@ -30,7 +29,6 @@ def create_supplier_route():
 
 @supplier_bp.route('/get/<supplier_id>', methods=['GET'])
 def get_supplier_route(supplier_id):
-    # TODO: PASSED
     supplier_service = current_app.config['supplier_service']
     supplier = supplier_service.get_supplier(supplier_id)
     # TODO: For now convert entity, but in the future should use mapper
