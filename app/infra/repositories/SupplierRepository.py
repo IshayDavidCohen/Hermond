@@ -104,3 +104,23 @@ class SupplierRepository(BaseDAO):
         )
 
         return result.matched_count == 1
+
+    # -------------------------------------------------------------------------
+    # Supplier <-> Orders relationship
+    # -------------------------------------------------------------------------
+
+    def add_active_order(self, supplier_id: str, order_id: str) -> bool:
+        supplier_oid = to_oid(supplier_id)
+        order_oid = to_oid(order_id)
+        if not supplier_oid or not order_oid:
+            return False
+
+        result = self._db.update_one(
+            self.COLLECTION,
+            {"_id": supplier_oid},
+            {"active_orders": order_oid},
+            operation="$addToSet"
+        )
+
+        # matched_count==1 means supplier existed; modified_count==1 means it was newly added
+        return result.matched_count == 1

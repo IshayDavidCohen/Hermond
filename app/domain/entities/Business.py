@@ -60,26 +60,24 @@ class Business:
         )
 
     def from_entity(self) -> Dict:
-        # Convert Business dataclass instance to MongoDB document
         doc = {
-            '_id': self.id,
-            'bid': self.bid,
-            'company_name': self.company_name,
-            'desc': self.desc,
-            'icon': self.icon,
-            'banner': self.banner,
-            'email': self.email,
-            'phone': self.phone,
-            'address': self.address,
-            'shipping_address': self.shipping_address,
-            'categories': self.categories,
-            'my_suppliers': {k: v for k, v in self.my_suppliers.items()},
-            'handshake_requests': {k: v for k, v in self.handshake_requests.items()},
-            'active_orders': [order for order in self.active_orders],
-            'order_history': [order for order in self.order_history],
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
+            "bid": self.bid,
+            "company_name": self.company_name,
+            "desc": self.desc,
+            "icon": self.icon,
+            "banner": self.banner,
+            "email": self.email,
+            "phone": self.phone,
+            "address": self.address,
+            "shipping_address": self.shipping_address,
+            "categories": self.categories,
+            "my_suppliers": self.my_suppliers,  # str ids (repo converts)
+            "handshake_requests": self.handshake_requests,  # str ids (repo converts)
+            "active_orders": self.active_orders,  # str ids (repo converts)
+            "order_history": self.order_history,  # str ids (repo converts)
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
         }
         if self.id is not None:
-            doc['_id'] = self.id
+            doc["_id"] = self.id
         return doc

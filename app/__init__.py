@@ -3,6 +3,7 @@ import os
 from flask import Flask
 from dotenv import load_dotenv
 
+from app.infra.repositories.BusinessRepository import BusinessRepository
 # Routes Blueprints
 from app.routes.SupplierRoutes import supplier_bp
 from app.routes.BusinessRoutes import business_bp
@@ -12,9 +13,6 @@ from app.routes.HandshakeRoutes import handshake_bp
 from app.services.BusinessService import BusinessService
 from app.services.SupplierService import SupplierService
 from app.services.HandshakeService import HandshakeService
-
-# App Modules
-from app.modules.BusinessModule import BusinessModule
 
 # App Repository
 from app.infra.repositories.SupplierRepository import SupplierRepository
@@ -39,29 +37,26 @@ def create_app():
     # Here we assume Database can take a URI directly. If not, adjust accordingly.
     db = Database(database_name=app.config["DB_NAME"], connection_uri=app.config["MONGO_URI"])
 
-    # 4. Initializing base module
-    business_module = BusinessModule(db)
-
-    # 5. Initialize repositories
+    # 4. Initialize repositories
     supplier_repository = SupplierRepository(db=db)
     item_repository = ItemRepository(db=db)
     category_repository = CategoryRepository(db=db)
-    # handshake_repository = HandshakeRepository(handshake_module=handshake_module, supplier_module=supplier_module, business_module=business_module)
+    business_repository = BusinessRepository(db=db)
+    handshake_repository = HandshakeRepository(db=db)
 
-
-    # 6. Initializing main services
-    business_service = BusinessService(db)
+    # 5. Initializing main services
+    business_service = BusinessService(business_repository=business_repository)
     supplier_service = SupplierService(supplier_repository=supplier_repository,
                                        item_repository=item_repository,
                                        category_repository=category_repository)
     # handshake_service = HandshakeService(handshake_repo=handshake_repository)
 
-    # 5. Store the services in app.config for routes access
+    # 6. Store the services in app.config for routes access
     app.config['business_service'] = business_service
     app.config['supplier_service'] = supplier_service
     # app.config['handshake_service'] = handshake_service
 
-    # 6. register blueprints
+    # 7. register blueprints
     app.register_blueprint(business_bp, url_prefix='/api/v1/business')
     app.register_blueprint(supplier_bp, url_prefix='/api/v1/supplier')
     app.register_blueprint(handshake_bp, url_prefix='/api/v1/handshake')

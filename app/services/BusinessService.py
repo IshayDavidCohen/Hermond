@@ -1,6 +1,5 @@
-from app.modules.BusinessModule import BusinessModule
+from app.infra.repositories.BusinessRepository import BusinessRepository
 
-
-class BusinessService(BusinessModule):
-    def __init__(self, db):
-        super().__init__(db)
+class BusinessService:
+    def __init__(self, business_repository: BusinessRepository):
+        self.business_repository = business_repository

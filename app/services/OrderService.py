@@ -1,120 +1,144 @@
 import collections
 
-from typing import Dict, Union
-from bson import ObjectId
+from typing import Dict, Union, List
 
 # App Dependencies
 from app.infra.repositories.OrderRepository import OrderRepository
-from app.modules.OrderModule import OrderedItem
+from app.infra.repositories.ItemRepository import ItemRepository
+from app.infra.repositories.SupplierRepository import SupplierRepository
+from app.infra.repositories.BusinessRepository import BusinessRepository
 
+from app.domain.entities.Item import Item
 
 class OrderService:
-    def __init__(self, order_repository: OrderRepository):
-        self.OrderRepository = order_repository
+    def __init__(
+            self,
+            order_repository: OrderRepository,
+            item_repository: ItemRepository,
+            supplier_repository: SupplierRepository,
+            business_repository: BusinessRepository
+            ):
+        self.order_repository = order_repository
+        self.item_repository = item_repository
+        self.supplier_repository = supplier_repository
+        self.business_repository = business_repository
 
-        # Private Main Methods
-        self.__update_supplier = self.OrderRepository.supplier_module.update_supplier
-        self.__update_business = self.OrderRepository.business_module.update_business
 
     def create_order_for_each_supplier(self, order_data: Dict) -> Union[bool, Dict]:
         """
-        Function creates
+        Expected payload shape:
+        {
+          "business": "<business_id>",
+          "orders": {
+             "<supplier_id>": {"<item_id>": quantity, ...},
+             ...
+          },
+        }
 
-        :param order_data: Dict
-        :return: True/False or Dict of failed supplier orders
+        Returns:
+          True on success, or dict describing failures.
         """
+        business_id = order_data["business"]
+        orders_by_supplier: Dict[str, Dict[str, int]] = order_data["orders"]
 
-        #  TODO: Too many items will cause bigger ram usage than batching.
-        #  TODO: I avoided batching to reduce tcp/ip request overhead.
+        # 0) Validate business exists (fast exists check in repo)
+        if not self.business_repository.exists(business_id):
+            return {"error": "business_not_found", "business_id": business_id}
 
-        #  NOTE: This will need to be refactored if batching is required.
+        # 1) Collect all item ids
+        item_ids: List[str] = [iid for sup in orders_by_supplier.values() for iid in sup.keys()]
+        if not item_ids:
+            return {"error": "no_items"}
 
-        ex = {'business': 'BusinessName',
-              'orders': {'supplierA': {'id1': 5, 'id2': 3},
-                         'supplierB': {'id3': 6},
-                         'supplierC': {'id4': 13}
-                         }
-              }
+        # 2) Fetch items with minimal fields (repo should handle ObjectId conversion internally)
+        #    We want: base_price, custom_prices, supplier_id
+        # TODO: Check ObjectId conversions in item repo layer
+        item_docs = list(
+            self.item_repository.get_items_by(
+                query={"_id": {"$in": item_ids}},
+                projection={"base_price": 1, "custom_prices": 1, "supplier_id": 1},
+            )
+        )
+        if not item_docs:
+            return {"error": "items_not_found"}
 
-        # TODO: Make sure you validate keys exist in routes
-        successful_orders = {}
+        # 3) Ensure none missing
+        got_ids = [str(d["_id"]) for d in item_docs]
+        if collections.Counter(item_ids) != collections.Counter(got_ids):
+            missing = list((collections.Counter(item_ids) - collections.Counter(got_ids)).keys())
+            return {"error": "missing_items", "missing_item_ids": missing}
 
-        business_id = order_data['business']
+        # 4) Convert to entities + build lookup
+        items: Dict[str, Item] = {str(d["_id"]): Item.to_entity(d) for d in item_docs}
 
-        # 1. Extract id's from payload and get items.
-        item_id_list = [key for supplier in order_data['orders'].values() for key in supplier.keys()]
-        items_list = list(self.OrderRepository.item_module.get_items_by(query={'_id': {'$in': item_id_list}},
-                                                                        additional_query={'base_price': 1,
-                                                                                          'custom_prices': 1}))
+        # 5) Create an order per supplier
+        created = {}
+        failed = {}
 
-        if not items_list:
-            # Logger - Could not retrieve items
-            return False
+        for supplier_id, supplier_order in orders_by_supplier.items():
+            # Validate supplier exists
+            if not self.supplier_repository.exists(supplier_id):
+                failed[supplier_id] = {"error": "supplier_not_found"}
+                continue
 
-        # 2. Check that no ID is missing in our list.
-        if collections.Counter(item_id_list) != collections.Counter([str(item['_id']) for item in items_list]):
-            # Logger - Missing items
-            return False
+            # Build ordered_items payload and total
+            ordered_items = []
+            total_price = 0.0
 
-        # 3. Transform data (add id and check for custom prices)
-        transformed_items = {}
-        for item in items_list:
-            price_at_order = item['base_price']
+            # Validate: item belongs to this supplier + compute price_at_order
+            for item_id, quantity in supplier_order.items():
+                item = items.get(item_id)
+                if not item:
+                    failed.setdefault(supplier_id, {"error": "missing_items_for_supplier", "items": []})
+                    failed[supplier_id]["items"].append(item_id)
+                    continue
 
-            if item['custom_prices'].get(business_id):
-                price_at_order = item['custom_prices'].get(business_id)
+                # IMPORTANT: prevents ordering supplier A items through supplier B
+                if item.supplier_id != supplier_id:
+                    failed.setdefault(supplier_id, {"error": "item_supplier_mismatch", "items": []})
+                    failed[supplier_id]["items"].append(item_id)
+                    continue
 
-            transformed_items[str(item['_id'])] = {'base_price': item['base_price'],
-                                                   'priceAtOrder': price_at_order}
+                price_at_order = item.base_price
+                if item.custom_prices and item.custom_prices.get(business_id):
+                    price_at_order = item.custom_prices[business_id]
 
-        # TODO: Implement estimated_eta in the future.
-        # 4. Create order for each supplier
-        for supplier_id, order in order_data['orders'].items():
-            ordered_items, total_price = [], 0
+                line_total = float(quantity) * float(price_at_order)
+                total_price += line_total
 
-            for item_id, amount in order.items():
-                ordered_item_obj = OrderedItem(item_id=item_id,
-                                               quantity=amount,
-                                               base_price=transformed_items[item_id]['base_price'],
-                                               price_at_order=transformed_items[item_id]['priceAtOrder'])
-                total_price = total_price + ordered_item_obj.total_price_for_item
-                ordered_items.append(ordered_item_obj)
+                ordered_items.append({
+                    "item_id": item_id,
+                    "quantity": int(quantity),
+                    "base_price": float(item.base_price),
+                    "price_at_order": float(price_at_order),
+                    "total_price_for_item": float(line_total),
+                })
 
-            new_order = {'supplier_id': ObjectId(supplier_id),
-                         'business_id': ObjectId(business_id),
-                         'estimated_eta': 0,
-                         'ordered_items': ordered_items,
-                         'total_price': total_price}
+            # If any per-supplier item failures, skip creating that supplier's order
+            if supplier_id in failed:
+                continue
 
-            # 5. Get Business and Supplier, validate and Create New Order
-            supplier_document = self.OrderRepository.supplier_module.get_supplier(supplier_id=supplier_id)
-            business_document = self.OrderRepository.business_module.get_business(business_id=business_id)
+            # 6) Create order (repo converts supplier_id/business_id/item_id -> ObjectId)
+            order_id = self.order_repository.create_order({
+                "supplier_id": supplier_id,
+                "business_id": business_id,
+                "estimated_eta": None,
+                "ordered_items": ordered_items,
+                "totalPrice": float(total_price),   # keep DB schema stable
+            })
 
-            if (not supplier_document) and (not business_document):
-                # Logger - Unable to get supplier and business, skipping order
-                return False
+            # 7) Link order to supplier + business atomically (use $addToSet)
+            supplier_linked = self.supplier_repository.add_active_order(supplier_id, order_id)
+            business_linked = self.business_repository.add_active_order(business_id, order_id)
 
-            order_id = self.OrderRepository.order_module.create_order(new_order)
+            if not supplier_linked or not business_linked:
+                # Optional: consider compensating action (delete order / mark failed)
+                failed[supplier_id] = {"error": "link_failed", "order_id": order_id}
+                continue
 
-            # 6. Add order_id to both Supplier and Business
-            supplier_document['active_orders'].append(order_id)
-            business_document['active_orders'].append(order_id)
+            created[supplier_id] = {"order_id": order_id, "totalPrice": float(total_price)}
 
-            # 7. Update both documents
-            supplier_updated = self.__update_supplier(supplier_id=supplier_id, update_data={'active_orders': supplier_document['active_orders']})
-            business_updated = self.__update_business(business_id=business_id, update_data={'active_orders': business_document['active_orders']})
-
-            # Maybe dont exit, just report it didn't succeed
-            if supplier_updated is False or business_updated is False:
-                # Logger - Unable to update one of the two
-                return False
-
-            successful_orders[supplier_document['company_name']] = True
-
-        # 8. Finally check every order was created
-        failed_orders = {c: flag for c, flag in successful_orders.items() if flag is False}
-        if not failed_orders:
-            # Logger - There are some failed orders
-            return failed_orders
+        if failed:
+            return {"created": created, "failed": failed}
 
         return True
