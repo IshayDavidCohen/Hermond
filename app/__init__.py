@@ -49,12 +49,12 @@ def create_app():
     supplier_service = SupplierService(supplier_repository=supplier_repository,
                                        item_repository=item_repository,
                                        category_repository=category_repository)
-    # handshake_service = HandshakeService(handshake_repo=handshake_repository)
+    handshake_service = HandshakeService(handshake_repository=handshake_repository)
 
     # 6. Store the services in app.config for routes access
     app.config['business_service'] = business_service
     app.config['supplier_service'] = supplier_service
-    # app.config['handshake_service'] = handshake_service
+    app.config['handshake_service'] = handshake_service
 
     # 7. register blueprints
     app.register_blueprint(business_bp, url_prefix='/api/v1/business')

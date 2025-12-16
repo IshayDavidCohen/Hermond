@@ -50,8 +50,8 @@ class Handshake:
             id=str(doc["_id"]),
             sender_id=str(doc["sender_id"]),
             recipient_id=str(doc["recipient_id"]),
-            sender_type=doc.get("senderType") or doc.get("sender_type"),
-            recipient_type=doc.get("recipientType") or doc.get("recipient_type"),
+            sender_type=doc.get("sender_type") or doc.get("sender_type"),
+            recipient_type=doc.get("recipient_type") or doc.get("recipient_type"),
             status=HandshakeStatus(doc["status"]),
             created_at=doc["created_at"],
             updated_at=doc["updated_at"],
@@ -62,8 +62,8 @@ class Handshake:
         doc = {
             "sender_id": self.sender_id,
             "recipient_id": self.recipient_id,
-            "senderType": self.sender_type,        # keep DB field as-is
-            "recipientType": self.recipient_type,  # keep DB field as-is
+            "sender_type": self.sender_type,        # keep DB field as-is
+            "recipient_type": self.recipient_type,  # keep DB field as-is
             "status": self.status.value if isinstance(self.status, HandshakeStatus) else str(self.status),
             "created_at": self.created_at,
             "updated_at": self.updated_at,

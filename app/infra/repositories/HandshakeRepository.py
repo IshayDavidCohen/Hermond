@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from pymongo.cursor import Cursor
 from datetime import datetime
 
@@ -16,11 +16,12 @@ class HandshakeRepository(BaseDAO):
     # -------------------------------------------------------------------------
     # CRUD
     # -------------------------------------------------------------------------
-    def initiate_handshake(self, *, sender_id: str, recipient_id: str, sender_type: str, recipient_type: str,) -> str:
+    def initiate_handshake(self, *, sender_id: str, recipient_id: str, sender_type: str, recipient_type: str,) -> Optional[str]:
         sender_oid = to_oid(sender_id)
         recipient_oid = to_oid(recipient_id)
         if not sender_oid or not recipient_oid:
-            raise ValueError("sender_id/recipient_id must be valid ObjectId strings")
+            err = "sender_id/recipient_id must be valid ObjectId strings"
+            return None
 
         handshake = Handshake.new(
             sender_id=sender_id,
@@ -50,7 +51,8 @@ class HandshakeRepository(BaseDAO):
 
     def update_status(self, handshake_id: str, new_status: HandshakeStatus) -> bool:
         if new_status not in HandshakeStatus:
-            raise ValueError(f"Invalid status: {new_status}")
+            err = f"Invalid status: {new_status}"
+            return False
 
         hid = to_oid(handshake_id)
         if not hid:
@@ -81,3 +83,53 @@ class HandshakeRepository(BaseDAO):
     def get_handshake_list(self, projection: Optional[Dict] = None) -> Cursor:
         return self._db.find_all(collection=self.COLLECTION, query={}, subfield_query=projection)
 
+
+    # -------------------------------------------------------------------------
+    # Convenience queries (ID conversion happens here – NOT in services)
+    # -------------------------------------------------------------------------
+    def find_pending_between(self, sender_id: str, recipient_id: str) -> Optional[Handshake]:
+        sender_oid = to_oid(sender_id)
+        recipient_oid = to_oid(recipient_id)
+        if not sender_oid or not recipient_oid:
+            return None
+        
+        query = {
+            "status": HandshakeStatus.PENDING.value,
+            "$or": [
+                {"sender_id": sender_oid, "recipient_id": recipient_oid},
+                {"sender_id": recipient_oid, "recipient_id": sender_oid},
+            ]
+        }
+        
+        doc = self._db.find_one(self.COLLECTION, query)
+        return Handshake.to_entity(doc) if doc else None
+    
+    def get_handshakes_for_user(
+            self,
+            *,
+            user_id: str,
+            user_type: Optional[str] = None,
+            projection: Optional[Dict] = None
+    ) -> List[Handshake]:
+        """
+        List handshakes where user appears as sender or recipient
+        IF user_type is provided, filters matches by sender_type/recipient_type accordingly.
+        """
+        user_oid = to_oid(user_id)
+        if not user_oid:
+            return []
+
+        if user_type:
+            query = {
+                "$or": [
+                    {"sender_id": user_oid, "sender_type": user_type},
+                    {"recipient_id": user_oid, "recipient_type": user_type},
+                ]
+            }
+        else:
+            query = {"$or": [{"sender_id": user_oid}, {"recipient_id": user_oid}]}
+
+        cursor = self._db.find_all(collection=self.COLLECTION, query=query, subfield_query=projection)
+        docs = list(cursor) if cursor else []
+        return [Handshake.to_entity(d) for d in docs]
+        
