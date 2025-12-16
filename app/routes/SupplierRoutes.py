@@ -32,7 +32,9 @@ def get_supplier_route(supplier_id):
     supplier_service = current_app.config['supplier_service']
     supplier = supplier_service.get_supplier(supplier_id)
     # TODO: For now convert entity, but in the future should use mapper
-    return jsonify(supplier.from_entity()), 200
+    if supplier:
+        return jsonify(supplier.from_entity()), 200
+    return 'Supplier not found', 404
 
 
 @supplier_bp.route('/get/category_carousel/<category_id>', methods=['GET'])
