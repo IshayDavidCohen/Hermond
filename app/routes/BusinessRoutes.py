@@ -19,3 +19,11 @@ def create_business_route():
 
     return 'Missing fields or values', 400
 
+@business_bp.route('/get/<business_id>', methods=['GET'])
+def get_business_route(business_id):
+    business_service = current_app.config['business_service']
+    business = business_service.get_business(business_id)
+    # TODO: For now convert entity, but in the future should use mapper
+    if business:
+        return jsonify(business.from_entity()), 200
+    return 'Business not found', 404

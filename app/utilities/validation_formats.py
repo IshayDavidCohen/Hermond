@@ -20,6 +20,7 @@ BUSINESS = {
     'phone': str,
     'address': str,
     'shipping_address': str,
+    'categories': list
 }
 SUPPLIER_ITEM = {
     'supplier_id': str,
