@@ -23,7 +23,8 @@ class OrderRepository(BaseDAO):
         supplier_id = to_oid(doc["supplier_id"])
         business_id = to_oid(doc["business_id"])
         if not supplier_id or not business_id:
-            raise ValueError("supplier_id/business_id must be valid ObjectId strings")
+            err = "supplier_id/business_id must be valid ObjectId strings"
+            return {}
 
         doc["supplier_id"] = supplier_id
         doc["business_id"] = business_id
@@ -32,7 +33,9 @@ class OrderRepository(BaseDAO):
         for item in items:
             item_id = to_oid(item["item_id"])
             if not item_id:
-                raise ValueError("ordered_items[].item_id must be valid ObjectId strings")
+                # TODO: Must add logger
+                err = 'ordered_items[].item_id must be valid ObjectId strings'
+                continue
             item["item_id"] = item_id
         doc["ordered_items"] = items
 
@@ -41,7 +44,7 @@ class OrderRepository(BaseDAO):
     # --------------------------------------------
     # CRUD
     # ---------------------------------------------
-    def create_order(self, order_data: Dict) -> str:
+    def create_order(self, order_data: Dict) -> Optional[str]:
         # Expect order_data shape based on your module docstring
         ordered_items = [
             OrderedItem(
@@ -66,7 +69,8 @@ class OrderRepository(BaseDAO):
 
         # Convert relationship ids to ObjectId for Mongo
         doc = self._convert_order_doc_ids_to_mongo(doc)
-
+        if not doc:
+            return None
         return str(self._db.insert_one(self.ACTIVE_COLLECTION, doc).inserted_id)
 
     def get_active_order(self, order_id: str, projection: Optional[Dict] = None) -> Optional[Order]:

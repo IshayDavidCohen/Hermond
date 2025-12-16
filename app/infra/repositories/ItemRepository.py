@@ -17,7 +17,7 @@ class ItemRepository(BaseDAO):
     # -------------------------------------------------------------------------
     # CRUD
     # -------------------------------------------------------------------------
-    def create_item(self, item_data: Dict) -> Tuple[str, Item]:
+    def create_item(self, item_data: Dict) -> Tuple[Optional[str], Optional[Item]]:
         item_entity: Item = Item.new(
             supplier_id=item_data['supplier_id'],
             name=item_data['name'],
@@ -33,7 +33,8 @@ class ItemRepository(BaseDAO):
 
         supplier_oid = to_oid(item_entity.supplier_id)
         if not supplier_oid:
-            raise ValueError("Invalid supplier_id (not an ObjectId)")
+            err = "Invalid supplier_id (not an ObjectId)"
+            return None, None
 
         doc["supplier_id"] = supplier_oid
 
