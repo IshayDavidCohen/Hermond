@@ -1,17 +1,20 @@
-from app.domain.entities.Supplier import Supplier
-from app.domain.entities.Handshake import Handshake
+from app.identity.domain.entities.supplier import Supplier
+from app.handshake.domain.entities.handshake import Handshake
+
 
 def supplier_to_carousel_item(supplier: Supplier) -> dict:
     return {
-        "link": supplier.id,              # or supplier.slug, etc.
+        "link": supplier.id,
         "title": supplier.company_name,
         "desc": supplier.desc,
         "banner": supplier.banner,
         "icon": supplier.icon,
     }
 
+
 def handshake_to_dict(handshake: Handshake) -> dict:
     """Handshake entity -> JSON-serializable dict."""
+
     def _dt(x):
         return x.isoformat() if hasattr(x, "isoformat") else x
 
