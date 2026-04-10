@@ -12,6 +12,9 @@ from app.order.application.service import OrderService
 def get_db() -> Database:
     return Database(database_name=settings.DB_NAME, connection_uri=settings.MONGO_URI)
 
+@lru_cache()
+def get_event_publisher() -> EventPublisher:
+    return EventPublisher(redis_url=settings.REDIS_URL)
 
 @lru_cache()
 def get_identity_client() -> IdentityClient:
@@ -32,4 +35,5 @@ def get_order_service() -> OrderService:
         order_repository=get_order_repo(),
         identity_client=get_identity_client(),
         catalogue_client=get_catalogue_client(),
+        event_publisher=get_event_publisher(),
     )

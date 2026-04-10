@@ -6,6 +6,7 @@ from app.order.domain.entities.order import Order, OrderStatus
 from app.order.domain.repository_interfaces import IOrderRepository
 from app.order.infrastructure.clients.identity_client import IdentityClient
 from app.order.infrastructure.clients.catalogue_client import CatalogueClient
+from app.shared.events.publisher import EventPublisher
 from app.shared.exceptions import NotFoundError, ValidationError, ConflictError
 from app.shared.utils import to_oid
 
@@ -18,10 +19,12 @@ class OrderService:
         order_repository: IOrderRepository,
         identity_client: IdentityClient,
         catalogue_client: CatalogueClient,
+        event_publisher: EventPublisher,
     ):
         self.order_repository = order_repository
         self.identity_client = identity_client
         self.catalogue_client = catalogue_client
+        self.event_publisher = event_publisher
 
     async def create_order_for_each_supplier(self, order_data: Dict) -> Union[bool, Dict]:
         business_id = order_data["business"]
@@ -108,6 +111,24 @@ class OrderService:
             if not supplier_linked or not business_linked:
                 failed[supplier_id] = {"error": "link_failed", "order_id": order_id}
                 continue
+
+            # ── Inventory decrement event ────────────────────────
+            try:
+                self.event_publisher.publish("order.created", {
+                    "order_id": order_id,
+                    "supplier_id": supplier_id,
+                    "items": [
+                        {"item_id": oi["item_id"], "quantity": oi["quantity"]}
+                        for oi in ordered_items
+                    ],
+                })
+            except Exception:
+                logger.warning(
+                    "Failed to publish inventory decrement for order %s — "
+                    "stock will need manual adjustment",
+                    order_id,
+                )
+            # ── End inventory decrement event ──────────────────
 
             created[supplier_id] = {"order_id": order_id, "totalPrice": float(total_price)}
 
