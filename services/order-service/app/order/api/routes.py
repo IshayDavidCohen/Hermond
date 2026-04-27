@@ -1,12 +1,13 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, status
+from datetime import datetime
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query, status
 
 from app.order.application.dtos import (
     CreateOrderRequest,
     OrderResponse,
     OrderedItemSchema,
     UpdateOrderStatusRequest,
+    PaginatedOrdersResponse
 )
 from app.order.application.service import OrderService
 from app.dependencies import get_order_service
@@ -77,18 +78,19 @@ async def update_order_status(
 @router.get("/business/{biz_id}", response_model=List[OrderResponse])
 async def list_business_orders(
     biz_id: str,
+    since: Optional[datetime] = Query(default=None),
     service: OrderService = Depends(get_order_service),
 ):
-    orders = service.list_business_active_orders(biz_id)
+    orders = service.list_business_orders(biz_id, since=since)
     return [_order_to_response(o) for o in orders]
-
 
 @router.get("/supplier/{sup_id}", response_model=List[OrderResponse])
 async def list_supplier_orders(
     sup_id: str,
+    since: Optional[datetime] = Query(default=None),
     service: OrderService = Depends(get_order_service),
 ):
-    orders = service.list_supplier_active_orders(sup_id)
+    orders = service.list_supplier_orders(sup_id, since=since)
     return [_order_to_response(o) for o in orders]
 
 
@@ -99,3 +101,42 @@ async def archive_order(
 ):
     service.archive_order(order_id)
     return {"success": True}
+
+@router.get("/business/{biz_id}/history", response_model=PaginatedOrdersResponse)
+async def list_business_history(
+    biz_id: str,
+    cursor: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    service: OrderService = Depends(get_order_service),
+):
+
+    orders, next_cursor, has_more, total = service.list_business_history(biz_id, cursor=cursor, limit=limit)
+
+    return PaginatedOrdersResponse(
+        items=[_order_to_response(o) for o in orders],
+        next_cursor=next_cursor,
+        has_more=has_more,
+        total=total if total >= 0 else None
+    )
+
+@router.get("/supplier/{sup_id}/history", response_model=PaginatedOrdersResponse)
+async def list_supplier_history(
+    sup_id: str,
+    cursor: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    service: OrderService = Depends(get_order_service),
+):
+    orders, next_cursor, has_more, total = service.list_supplier_history(sup_id, cursor=cursor, limit=limit)
+    return PaginatedOrdersResponse(
+        items=[_order_to_response(o) for o in orders],
+        next_cursor=next_cursor,
+        has_more=has_more,
+        total=total if total >= 0 else None
+    )
+
+# Run against the vendor_order database, either via mongosh or a migration script:
+# db.order_history.createIndex({ business_id: 1, updated_at: -1 })
+# db.order_history.createIndex({ supplier_id: 1, updated_at: -1 })
+# db.active_orders.createIndex({ business_id: 1 })
+# db.active_orders.createIndex({ supplier_id: 1 })
+# Without these, the get_order_history_page query does a collection scan. With them, cursor pagination is O(log N) per page.

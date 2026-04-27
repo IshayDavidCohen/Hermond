@@ -30,3 +30,10 @@ class OrderResponse(BaseModel):
 
 class UpdateOrderStatusRequest(BaseModel):
     status: str
+
+
+class PaginatedOrdersResponse(BaseModel):
+    items: List[OrderResponse]
+    next_cursor: Optional[str] = None # ISO timestamp of the last item's updated_at or None when exhausted
+    has_more: bool
+    total: Optional[int] = None

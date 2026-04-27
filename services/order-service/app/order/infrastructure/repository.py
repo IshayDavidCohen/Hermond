@@ -143,3 +143,15 @@ class OrderRepository(BaseRepository, IOrderRepository):
 
     def get_order_history_list(self, projection: Optional[Dict] = None) -> Cursor:
         return self._db.find_all(collection=self.HISTORY_COLLECTION, query={}, subfield_query=projection)
+
+    def get_order_history_page(self, query: Dict, *, limit: int, before: Optional[datetime] = None) -> Cursor:
+        if before is not None:
+            query = {**query, "updated_at": {"$lt": before}}
+        return (
+            self._db.find_all(collection=self.HISTORY_COLLECTION, query=query)
+            .sort("updated_at", -1)
+            .limit(limit)
+        )
+
+    def count_order_history(self, query: Dict) -> int:
+        return self._db.db[self.HISTORY_COLLECTION].count_documents(query)

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, Optional, Iterable
+from datetime import datetime
 
-from pymongo.cursor import Cursor
 
 from app.order.domain.entities.order import Order, OrderStatus
 
@@ -29,7 +29,13 @@ class IOrderRepository(ABC):
     def archive_active_order(self, order_id: str) -> bool: ...
 
     @abstractmethod
-    def get_multiple_active_orders(self, query: Dict, projection: Optional[Dict] = None) -> Cursor: ...
+    def get_multiple_active_orders(self, query: Dict, projection: Optional[Dict] = None) -> Iterable[Dict]: ...
 
     @abstractmethod
-    def get_multiple_order_history(self, query: Dict, projection: Optional[Dict] = None) -> Cursor: ...
+    def get_multiple_order_history(self, query: Dict, projection: Optional[Dict] = None) -> Iterable[Dict]: ...
+
+    @abstractmethod
+    def get_order_history_page(self, query: Dict, *, limit: int, before: Optional[datetime] = None) -> Iterable[Dict]: ...
+
+    @abstractmethod
+    def count_order_history(self, query: Dict) -> int: ...

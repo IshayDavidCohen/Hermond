@@ -1,6 +1,7 @@
 import collections
 import logging
-from typing import Dict, List, Optional, Union
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Tuple, Union
 
 from app.order.domain.entities.order import Order, OrderStatus
 from app.order.domain.repository_interfaces import IOrderRepository
@@ -12,6 +13,18 @@ from app.shared.utils import to_oid
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_RECENT_HISTORY_WINDOW = timedelta(days=7)
+HISTORY_PAGE_MAX = 100
+
+
+def _parse_history_cursor(cursor: Optional[str]) -> Optional[datetime]:
+    """Opaque ISO-8601 cursor from a previous page. Malformed = start over."""
+    if not cursor:
+        return None
+    try:
+        return datetime.fromisoformat(cursor)
+    except (ValueError, TypeError):
+        return None
 
 class OrderService:
     def __init__(
@@ -179,6 +192,8 @@ class OrderService:
             )
         return self.order_repository.archive_active_order(order_id)
 
+
+    # Old Methods, not deprecated.
     def list_business_active_orders(self, business_id: str) -> List[Order]:
         bid = to_oid(business_id)
         if not bid:
@@ -192,3 +207,67 @@ class OrderService:
             return []
         cursor = self.order_repository.get_multiple_active_orders({"supplier_id": sid})
         return [Order.to_entity(doc) for doc in cursor]
+
+    # New Methods
+    def list_business_orders(self, business_id: str, *, since: Optional[datetime] = None) -> List[Order]:
+        bid = to_oid(business_id)
+        if not bid:
+            return []
+
+        since = since or datetime.now(timezone.utc) - DEFAULT_RECENT_HISTORY_WINDOW
+        active_docs = self.order_repository.get_multiple_active_orders({"business_id": bid})
+        recent_history_docs = self.order_repository.get_multiple_order_history({"business_id": bid, "updated_at": {"$gte": since}})
+
+        return [Order.to_entity(doc) for doc in active_docs] + [Order.to_entity(doc) for doc in recent_history_docs]
+
+    def list_supplier_orders(self, supplier_id: str, *, since: Optional[datetime] = None) -> List[Order]:
+        sid = to_oid(supplier_id)
+        if not sid:
+            return []
+
+        since = since or datetime.now(timezone.utc) - DEFAULT_RECENT_HISTORY_WINDOW
+        active_docs = self.order_repository.get_multiple_active_orders({"supplier_id": sid})
+        recent_history_docs = self.order_repository.get_multiple_order_history({"supplier_id": sid, "updated_at": {"$gte": since}})
+
+        return [Order.to_entity(doc) for doc in active_docs] + [Order.to_entity(doc) for doc in recent_history_docs]
+
+    def list_business_history(self, business_id: str, *, cursor: Optional[str], limit: int) -> Tuple[List[Order], Optional[str], bool, int]:
+        return self._list_history_page(party_field="business_id", party_id=business_id, cursor=cursor, limit=limit)
+
+    def list_supplier_history(self, supplier_id: str, *, cursor: Optional[str], limit: int) -> Tuple[List[Order], Optional[str], bool, int]:
+        return self._list_history_page(party_field="supplier_id", party_id=supplier_id, cursor=cursor, limit=limit)
+
+    def _list_history_page(
+            self,
+            *,
+            party_field: str,
+            party_id: str,
+            cursor: Optional[str],
+            limit: int,
+    ) -> Tuple[List[Order], Optional[str], bool, int]:  # ← added int for total
+
+        pid = to_oid(party_id)
+        if not pid:
+            return [], None, False, 0
+
+        limit = max(1, min(limit, HISTORY_PAGE_MAX))
+        before = _parse_history_cursor(cursor)
+
+        # Count total only on first page (no cursor) to avoid repeat work
+        if before is None:
+            total = self.order_repository.count_order_history({party_field: pid})
+        else:
+            total = -1  # signal to route handler: don't override previous total
+
+        docs = list(
+            self.order_repository.get_order_history_page(
+                {party_field: pid},
+                limit=limit + 1,
+                before=before,
+            )
+        )
+        has_more = len(docs) > limit
+        docs = docs[:limit]
+        orders = [Order.to_entity(d) for d in docs]
+        next_cursor = orders[-1].updated_at.isoformat() if has_more and orders else None
+        return orders, next_cursor, has_more, total
